@@ -1,6 +1,6 @@
 # ⚽ Fantanucleo Market 26/27 — Web Dashboard
 
-> Dashboard web moderna, veloce e reattiva per la gestione e la consultazione live della lega di Fantacalcio **Fantanucleo Market** (Stagione 2026/2027).
+> Dashboard web moderna, veloce e reattiva per la gestione e la consultazione live della lega di Fantacalcio **Fantanucleo** (Stagione 2026/2027).
 
 ---
 
@@ -9,7 +9,6 @@
 - **👥 Rose Ordinati per Valore**: Visualizzazione a fisarmonica (accordion) delle 18 squadre della lega, con i calciatori ordinati per valore decrescente in crediti (`cr`) aggiornato ad ogni giornata.
 - **📋 Svincolati & Listone**: Tabella con ricerca in tempo reale, filtri rapidi per ruolo (P, D, C, A) e ordinamento dinamico per FVM, Medie e Quotazione. I calciatori ceduti all'estero o fuori lista sono chiaramente contrassegnati con l'asterisco (`*`) e quotazione 0.
 - **💰 Crediti & Cambi**: Monitoraggio immediato del numero di cambi effettuati, cambi rimanenti e crediti residui per ciascun fantallenatore.
-- **🚀 Ultra-Veloce & Off-line Ready**: Sviluppata in HTML5, CSS3 e JavaScript Vanilla senza framework pesanti per caricamenti istantanei da qualsiasi dispositivo (PC, Tablet, Smartphone).
 
 ---
 
@@ -62,13 +61,6 @@ La gestione dei dati è completamente automatizzata tramite lo script Python `or
 
 ---
 
-## 🔒 Sicurezza & Privacy
-
-- **Nessuna Credenziale o Token nel Codice**: Questo repository è 100% pubblico e sicuro. Nessuna password, token d'accesso (PAT) o chiave privata è salvata nei sorgenti o nella cronologia dei commit.
-- **Esclusione File Sensibili/Pesanti**: I file Excel di lavoro (`.xlsx`) sono esclusi tramite `.gitignore` per mantenere la repository leggera e pulita.
-
----
-
 ## 📄 Licenza
 
-Questo progetto è distribuito sotto licenza MIT. Libero da riutilizzare e adattare per altre leghe di Fantacalcio.
+Questo progetto è distribuito sotto licenza MIT.
