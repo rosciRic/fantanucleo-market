@@ -1,0 +1,9 @@
+# Fantanucleo Market 26/27 — GitHub Pages Dashboard
+
+# File Excel originali (pesanti, non necessari per il sito)
+**/*.xlsx
+
+# Sistema
+.DS_Store
+Thumbs.db
+**/.~lock.*

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantanucleo Market 26/27</title>
+    <meta name="description" content="Rose, Svincolati e Crediti — Fantanucleo Market 26/27">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="bar">
+    <div class="logo">
+        <span class="logo-icon">⚽</span>
+        <span class="logo-text">Fantanucleo <span class="badge-market">MARKET</span> <span class="dim">26/27</span></span>
+    </div>
+
+    <nav class="tabs">
+        <button class="t active" data-v="rose">
+            <span class="tab-icon">👥</span> Rose
+        </button>
+        <button class="t" data-v="svincolati">
+            <span class="tab-icon">📋</span> Svincolati
+        </button>
+        <button class="t" data-v="mercato">
+            <span class="tab-icon">💰</span> Crediti & Cambi
+        </button>
+    </nav>
+
+    <div class="gn-nav">
+        <button class="gn-btn" id="gnPrev" title="Giornata precedente">‹</button>
+        <button class="gn-label" id="gnLabel" title="Seleziona giornata">G1</button>
+        <button class="gn-btn" id="gnNext" title="Giornata successiva">›</button>
+    </div>
+</header>
+
+<!-- picker giornate -->
+<div class="picker" id="picker"></div>
+
+<main>
+
+    <!-- ROSE -->
+    <section class="v on" id="v-rose">
+        <div class="rose-toolbar">
+            <div class="ac-actions">
+                <button id="btnExpandAll" class="btn-subtle">Espandi tutte</button>
+                <button id="btnCollapseAll" class="btn-subtle">Chiudi tutte</button>
+            </div>
+        </div>
+        <div class="accordion" id="accordion"></div>
+    </section>
+
+    <!-- SVINCOLATI -->
+    <section class="v" id="v-svincolati">
+        <div class="sv-bar">
+            <div class="search-wrap">
+                <span class="search-icon">🔍</span>
+                <input id="q" type="search" class="search" placeholder="Cerca giocatore o squadra…">
+                <button id="searchClear" class="search-clear" title="Cancella ricerca">✕</button>
+            </div>
+
+            <div class="pills">
+                <button class="pill on" data-r="">Tutti <span class="pill-cnt" id="cnt-all"></span></button>
+                <button class="pill pp" data-r="P">P <span class="pill-cnt" id="cnt-p"></span></button>
+                <button class="pill pd" data-r="D">D <span class="pill-cnt" id="cnt-d"></span></button>
+                <button class="pill pc" data-r="C">C <span class="pill-cnt" id="cnt-c"></span></button>
+                <button class="pill pa" data-r="A">A <span class="pill-cnt" id="cnt-a"></span></button>
+            </div>
+            <span class="cnt" id="cnt"></span>
+        </div>
+
+        <div class="box full-box">
+            <div class="scroll">
+                <table id="tSv">
+                    <thead><tr>
+                        <th>R</th>
+                        <th>Nome</th>
+                        <th class="hide-sm">Squadra</th>
+                        <th class="n" data-s="FVM">FVM ⇕</th>
+                        <th class="n" data-s="FM">FM ⇕</th>
+                        <th class="n hide-sm" data-s="MV">MV ⇕</th>
+                        <th class="n hide-sm" data-s="PG">PG ⇕</th>
+                        <th class="n" data-s="Quotazione">Quot. (cr) ⇕</th>
+                    </tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div id="svEmpty" class="empty-state" style="display:none;">
+                <span>🔎</span>
+                <p>Nessun calciatore trovato con i filtri correnti</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- MERCATO -->
+    <section class="v" id="v-mercato">
+        <div class="mercato-note" id="mercatoNote"></div>
+        <div class="box">
+            <div class="scroll">
+                <table id="tCambi">
+                    <thead><tr>
+                        <th>Squadra</th>
+                        <th class="n">Cambi rimasti</th>
+                        <th class="n">Crediti residui</th>
+                    </tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
