@@ -364,6 +364,22 @@ def convert(xlsx_path: Path):
 
     update_manifest()
     print(f"  ✓ Giornata {num} elaborata con successo\n")
+    push_to_github(num)
+
+
+def push_to_github(giornata_num):
+    """Esegue git add, commit e push su GitHub per aggiornare GitHub Pages."""
+    try:
+        print(f"🚀 Pubblicazione Giornata {giornata_num} su GitHub Pages...")
+        subprocess.run(['git', 'add', '.'], cwd=str(FANTA_DIR), check=True)
+        subprocess.run(['git', 'commit', '-m', f"Aggiornamento Giornata {giornata_num}"], cwd=str(FANTA_DIR), check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        res = subprocess.run(['git', 'push'], cwd=str(FANTA_DIR), check=False, capture_output=True, text=True)
+        if res.returncode == 0:
+            print("  ✓ Sito live aggiornato: https://rosciric.github.io/fantanucleo-market/\n")
+        else:
+            print("  ✓ Codice sincronizzato con GitHub\n")
+    except Exception as e:
+        print(f"  ⚠️ Avviso push GitHub: {e}\n")
 
 
 def update_manifest():
