@@ -1074,6 +1074,10 @@ tbody tr:hover td {
     .show-sm {
         display: inline-block !important;
     }
+    th[data-s="FVM"] {
+        cursor: default !important;
+        pointer-events: none !important;
+    }
 
     .ac-trigger {
         padding: 10px 8px;

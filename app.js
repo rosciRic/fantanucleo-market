@@ -589,6 +589,7 @@ function setup() {
     // Svincolati — Sort colonne
     document.querySelectorAll('#tSv th[data-s]').forEach(th =>
         th.addEventListener('click', () => {
+            if (window.innerWidth <= 768 && th.dataset.s === 'FVM') return;
             const c = th.dataset.s;
             S.sDir = (S.sCol === c && S.sDir === 'desc') ? 'asc' : 'desc';
             S.sCol = c;
