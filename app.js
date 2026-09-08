@@ -153,6 +153,37 @@ const ROLE_NAMES = {
     A: 'Attaccanti'
 };
 
+const TEAM_ABBR = {
+    'Atalanta': 'ATA',
+    'Bologna': 'BOL',
+    'Cagliari': 'CAG',
+    'Como': 'COM',
+    'Empoli': 'EMP',
+    'Fiorentina': 'FIO',
+    'Frosinone': 'FRO',
+    'Genoa': 'GEN',
+    'Inter': 'INT',
+    'Juventus': 'JUV',
+    'Lazio': 'LAZ',
+    'Lecce': 'LEC',
+    'Milan': 'MIL',
+    'Monza': 'MON',
+    'Napoli': 'NAP',
+    'Parma': 'PAR',
+    'Roma': 'ROM',
+    'Sassuolo': 'SAS',
+    'Torino': 'TOR',
+    'Udinese': 'UDI',
+    'Venezia': 'VEN',
+    'Verona': 'VER',
+    'Hellas Verona': 'VER'
+};
+
+function getTeamAbbr(sq) {
+    if (!sq) return '—';
+    return TEAM_ABBR[sq] || sq.substring(0, 3).toUpperCase();
+}
+
 function getPlayerVal(p) {
     if (S.gn === 1) {
         return +p.Costo || 0;
@@ -279,7 +310,10 @@ function rSv() {
         <td><span class="rb rb-${r.Ruolo.toLowerCase()}">${r.Ruolo}</span></td>
         <td style="font-weight:600">${r.Nome}</td>
         <td class="hide-sm" style="color:var(--tx2)">${r.Squadra}</td>
-        <td class="n fvm-val">${r.FVM}</td>
+        <td class="n fvm-val">
+            <span class="hide-sm">${r.FVM}</span>
+            <span class="show-sm sq-badge">${getTeamAbbr(r.Squadra)}</span>
+        </td>
         <td class="n">${r.FM || '—'}</td>
         <td class="n hide-sm">${r.MV || '—'}</td>
         <td class="n hide-sm">${r.PG}</td>
@@ -290,12 +324,15 @@ function rSv() {
     document.querySelectorAll('#tSv th[data-s]').forEach(th => {
         th.classList.remove('sa', 'sd');
         const col = th.dataset.s;
-        let label = th.textContent.replace(/[ ⇕↑↓]/g, '');
-        if (col === S.sCol) {
-            th.classList.add(S.sDir === 'asc' ? 'sa' : 'sd');
-            th.innerHTML = `${label} ${S.sDir === 'asc' ? '↑' : '↓'}`;
+        const arrow = col === S.sCol ? (S.sDir === 'asc' ? '↑' : '↓') : '⇕';
+        if (col === S.sCol) th.classList.add(S.sDir === 'asc' ? 'sa' : 'sd');
+
+        if (col === 'FVM') {
+            th.innerHTML = `<span class="hide-sm">FVM ${arrow}</span><span class="show-sm">Sq.</span>`;
         } else {
-            th.innerHTML = `${label} ⇕`;
+            let label = (th.dataset.label || th.textContent).replace(/[ ⇕↑↓]/g, '');
+            th.dataset.label = label;
+            th.innerHTML = `${label} ${arrow}`;
         }
     });
 }
