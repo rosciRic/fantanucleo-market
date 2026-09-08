@@ -28,11 +28,17 @@
             <span class="tab-icon">💰</span> Crediti & Cambi
         </button>
     </nav>
-
-    <div class="gn-nav">
-        <button class="gn-btn" id="gnPrev" title="Giornata precedente">‹</button>
-        <button class="gn-label" id="gnLabel" title="Seleziona giornata">G1</button>
-        <button class="gn-btn" id="gnNext" title="Giornata successiva">›</button>
+    <div class="bar-right">
+        <button id="btnGlobalSearch" class="btn-subtle gs-trigger" title="Cerca Giocatore (Ctrl+K)">
+            <span class="gs-icon">🔍</span>
+            <span class="gs-text">Cerca...</span>
+            <kbd class="gs-kbd">Ctrl K</kbd>
+        </button>
+        <div class="gn-nav">
+            <button class="gn-btn" id="gnPrev" title="Giornata precedente">‹</button>
+            <button class="gn-label" id="gnLabel" title="Seleziona giornata">G1</button>
+            <button class="gn-btn" id="gnNext" title="Giornata successiva">›</button>
+        </div>
     </div>
 </header>
 
@@ -112,6 +118,20 @@
     </section>
 
 </main>
+
+<!-- MODAL RICERCA GLOBALE -->
+<div id="gsModal" class="gs-modal">
+    <div class="gs-modal-content">
+        <div class="gs-header">
+            <h3 id="gsTitle">🔍 Cerca Giocatore</h3>
+            <button id="gsClose" class="gs-close">&times;</button>
+        </div>
+        <div class="gs-body">
+            <input type="text" id="gsInput" class="search" placeholder="Inserisci nome giocatore..." autocomplete="off">
+            <div id="gsResults" class="gs-results"></div>
+        </div>
+    </div>
+</div>
 
 <script src="app.js"></script>
 </body>

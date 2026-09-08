@@ -60,6 +60,8 @@ async function load(n) {
     for (const q of quot) {
         const nomeKey = (q.Nome || '').replace(/\*/g, '').trim().toLowerCase();
         S.quotMap[nomeKey] = {
+            sq: q.Squadra || '',
+            ruolo: q.Ruolo || '',
             qta: +q.QtA || 0,
             qti: +q.QtI || 0,
             diff: +q.Diff || 0
@@ -358,8 +360,128 @@ function render() {
     rMercato();
 }
 
+// ── Global Search ───────────────────────────────────────────────────
+function initGlobalSearch() {
+    const modal = $('gsModal');
+    const btn = $('btnGlobalSearch');
+    const close = $('gsClose');
+    const input = $('gsInput');
+    const res = $('gsResults');
+    if (!modal || !btn) return;
+
+    function openGS() {
+        modal.classList.add('show');
+        if ($('gsTitle')) $('gsTitle').textContent = `🔍 Cerca Giocatore (Giornata ${S.gn})`;
+        input.value = '';
+        res.innerHTML = '';
+        input.focus();
+    }
+    function closeGS() {
+        modal.classList.remove('show');
+    }
+
+    btn.addEventListener('click', openGS);
+    close.addEventListener('click', closeGS);
+    modal.addEventListener('click', e => { if (e.target === modal) closeGS(); });
+
+    document.addEventListener('keydown', e => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+            e.preventDefault();
+            modal.classList.contains('show') ? closeGS() : openGS();
+        }
+        if (e.key === 'Escape' && modal.classList.contains('show')) {
+            closeGS();
+        }
+    });
+
+    input.addEventListener('input', () => {
+        const q = input.value.trim().toLowerCase();
+        if (q.length < 2) { res.innerHTML = ''; return; }
+
+        let playerMap = {};
+
+        // Helper per cercare o registrare calciatore
+        function getOrAdd(rawName, sq, ruolo) {
+            const cleanName = (rawName || '').replace(/\*/g, '').trim();
+            if (!cleanName) return null;
+            const key = cleanName.toLowerCase();
+            const qInfo = S.quotMap[key] || {};
+
+            if (!playerMap[key]) {
+                playerMap[key] = {
+                    nome: cleanName,
+                    sq: sq || qInfo.sq || '',
+                    ruolo: ruolo || qInfo.ruolo || '',
+                    owners: [],
+                    isSvincolato: false
+                };
+            }
+            return playerMap[key];
+        }
+
+        // Cerca in rose
+        for (const [fsq, giocatori] of Object.entries(S.rose)) {
+            for (const g of giocatori) {
+                const pName = g.Calciatore || g.Nome || '';
+                if (pName.toLowerCase().includes(q)) {
+                    const item = getOrAdd(pName, g.Squadra, g.Ruolo);
+                    if (item && !item.owners.includes(fsq)) {
+                        item.owners.push(fsq);
+                    }
+                }
+            }
+        }
+
+        // Cerca in svincolati
+        for (const sv of S.sv) {
+            const pName = sv.Nome || sv.Calciatore || '';
+            if (pName.toLowerCase().includes(q)) {
+                const item = getOrAdd(pName, sv.Squadra, sv.Ruolo);
+                if (item) item.isSvincolato = true;
+            }
+        }
+
+        let matches = Object.values(playerMap);
+        matches.sort((a, b) => a.nome.localeCompare(b.nome));
+
+        if (matches.length === 0) {
+            res.innerHTML = '<div style="padding:10px; color:var(--tx3); text-align:center;">Nessun giocatore trovato.</div>';
+            return;
+        }
+
+        res.innerHTML = matches.map(m => {
+            const rCol = { P: '#fbbf24', D: '#4ade80', C: '#38bdf8', A: '#f87171' }[m.ruolo] || '#fff';
+            const rBg = { P: 'rgba(251,191,36,0.15)', D: 'rgba(74,222,128,0.15)', C: 'rgba(56,189,248,0.15)', A: 'rgba(248,113,113,0.15)' }[m.ruolo] || 'rgba(255,255,255,0.1)';
+            
+            let badges = '';
+            if (m.isSvincolato && m.owners.length === 0) {
+                badges = `<span class="gs-owner svinc">Svincolato</span>`;
+            } else {
+                badges = m.owners.map(o => `<span class="gs-owner rosa">${o}</span>`).join('');
+                if (m.isSvincolato) badges += `<span class="gs-owner svinc">Svincolato</span>`;
+            }
+
+            const sqStr = m.sq ? `(${m.sq})` : '';
+
+            return `
+                <div class="gs-item" style="align-items: flex-start;">
+                    <div style="flex-shrink:0; margin-right:10px; padding-top:2px;">
+                        <span class="gs-ruolo" style="color:${rCol}; background:${rBg};">${m.ruolo || '?'}</span>
+                        <span class="gs-nome">${m.nome}</span>
+                        <span class="gs-sq">${sqStr}</span>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-end;">
+                        ${badges}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    });
+}
+
 // ── Events Setup ─────────────────────────────────────────────────────
 function setup() {
+    initGlobalSearch();
     // Tabs Navigation
     document.querySelectorAll('.t').forEach(b =>
         b.addEventListener('click', () => {
