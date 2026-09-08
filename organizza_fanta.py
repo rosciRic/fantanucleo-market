@@ -234,24 +234,14 @@ def parse_cambi(sheet):
 
 def parse_listone_file(out_dir: Path = None, num: int = 1):
     """
-    Cerca il file Excel del listone ufficiale e restituisce le quotazioni per la giornata:
-      - Giornata 1: usa Qt.I dal file Asta (post mercato estivo)
-      - Giornata 2: usa Qt.A dal file Asta (post mercato estivo)
-      - Giornata 3+: usa Qt.A dal nuovo file specifico in Downloads o nella cartella giornata_N
+    Cerca il file Excel del listone ufficiale per la giornata e ne estrae le quotazioni.
     """
-    asta_files = list(FANTA_DIR.glob("Asta/Quotazioni*.xlsx"))
-    file_path = None
-
-    if num in (1, 2) and asta_files:
-        file_path = asta_files[0]
-    else:
-        candidates = []
-        if out_dir and out_dir.exists():
-            candidates.extend(list(out_dir.glob("Quotazioni*.xlsx")))
-        candidates.extend(list(DOWNLOADS_DIR.glob("Quotazioni_Fantacalcio*.xlsx")))
-        candidates.extend(list(FANTA_DIR.glob("**/Quotazioni_Fantacalcio*.xlsx")))
-        if candidates:
-            file_path = candidates[0]
+    candidates = []
+    if out_dir and out_dir.exists():
+        candidates.extend(list(out_dir.glob("Quotazioni*.xlsx")))
+    candidates.extend(list(DOWNLOADS_DIR.glob("Quotazioni_Fantacalcio*.xlsx")))
+    candidates.extend(list(FANTA_DIR.glob("**/Quotazioni_Fantacalcio*.xlsx")))
+    file_path = candidates[0] if candidates else None
 
     if not file_path or not file_path.exists():
         return []
