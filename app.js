@@ -325,7 +325,9 @@ function rSv() {
         th.classList.remove('sa', 'sd');
         const col = th.dataset.s;
         const arrow = col === S.sCol ? (S.sDir === 'asc' ? '↑' : '↓') : '⇕';
-        if (col === S.sCol) th.classList.add(S.sDir === 'asc' ? 'sa' : 'sd');
+        if (col === S.sCol && !(window.innerWidth <= 768 && col === 'FVM')) {
+            th.classList.add(S.sDir === 'asc' ? 'sa' : 'sd');
+        }
 
         if (col === 'FVM') {
             th.innerHTML = `<span class="hide-sm">FVM ${arrow}</span><span class="show-sm">Sq.</span>`;

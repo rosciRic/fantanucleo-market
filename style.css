@@ -1077,6 +1077,7 @@ tbody tr:hover td {
     th[data-s="FVM"] {
         cursor: default !important;
         pointer-events: none !important;
+        color: var(--tx3) !important;
     }
 
     .ac-trigger {
