@@ -21,7 +21,11 @@ const S = {
     fS_gio: '',
     fQ_gio: '',
     sCol_gio: 'Quotazione',
-    sDir_gio: 'desc'
+    sDir_gio: 'desc',
+
+    // Filtri Mercato / Crediti & Cambi
+    sCol_mer: 'CambiRimasti',
+    sDir_mer: 'desc'
 };
 
 const ROLE_ORDER = { P: 1, D: 2, C: 3, A: 4 };
@@ -61,16 +65,25 @@ function openPlayerModal(p) {
     $('pmRuolo').className = `rb rb-${(p.ruolo || '').toLowerCase()}`;
     $('pmNome').textContent = p.nome;
     $('pmSq').textContent = p.sq ? `(${p.sq})` : '';
-    $('pmQuot').textContent = `${p.quot || 0} cr`;
 
     const count = p.owners ? p.owners.length : 0;
-    $('pmCount').textContent = count === 0 ? 'Svincolato' : `${count} fantasquadre`;
+    const isFree = count === 0;
+    const infoGrid = $('pmInfoGrid');
 
-    const ownersListEl = $('pmOwnersList');
-    if (count === 0) {
-        ownersListEl.innerHTML = `<span class="pm-free-tag">🟢 Calciatore libero sul mercato</span>`;
+    if (isFree) {
+        // PER GLI SVINCOLATI: mostra la griglia con tutte le statistiche
+        if (infoGrid) infoGrid.style.display = 'grid';
+        $('pmQuot').textContent = `${p.quot || 0} cr`;
+        if ($('pmFVM')) $('pmFVM').textContent = p.fvm || '—';
+        if ($('pmFM')) $('pmFM').textContent = p.fm || '—';
+        if ($('pmMV')) $('pmMV').textContent = p.mv || '—';
+        if ($('pmPG')) $('pmPG').textContent = p.pg !== undefined ? p.pg : '—';
+        if ($('pmCount')) $('pmCount').textContent = 'Svincolato';
+        $('pmOwnersList').innerHTML = `<span class="pm-free-tag">🟢 Calciatore libero sul mercato</span>`;
     } else {
-        ownersListEl.innerHTML = p.owners.map(team =>
+        // PER I POSSEDUTI: nascondi la griglia statistiche, mostra SOLTANTO l'elenco squadre
+        if (infoGrid) infoGrid.style.display = 'none';
+        $('pmOwnersList').innerHTML = p.owners.map(team =>
             `<div class="pm-owner-chip">⚽ ${team}</div>`
         ).join('');
     }
@@ -258,6 +271,9 @@ async function load(n) {
                 sq: svItem.Squadra || '',
                 fvm: svItem.FVM || 0,
                 quot: svItem.Quotazione || 0,
+                fm: svItem.FM || 0,
+                mv: svItem.MV || 0,
+                pg: svItem.PG || 0,
                 owners: [],
                 isSvincolato: true
             };
@@ -266,6 +282,9 @@ async function load(n) {
             if (svItem.FVM) dbMap[key].fvm = svItem.FVM;
             if (svItem.Quotazione) dbMap[key].quot = svItem.Quotazione;
             if (svItem.Squadra) dbMap[key].sq = svItem.Squadra;
+            if (svItem.FM) dbMap[key].fm = svItem.FM;
+            if (svItem.MV) dbMap[key].mv = svItem.MV;
+            if (svItem.PG) dbMap[key].pg = svItem.PG;
         }
     }
 
@@ -494,13 +513,23 @@ function rSv() {
 
     tbody.innerHTML = d.map(r => `<tr data-role="${r.Ruolo}" data-player-name="${r.Nome}">
         <td><span class="rb rb-${r.Ruolo.toLowerCase()}">${r.Ruolo}</span></td>
-        <td style="font-weight:600">${r.Nome}</td>
+        <td>
+            <div class="sv-name-wrap">
+                <span class="sv-pname">${r.Nome}</span>
+                <div class="show-sm sv-mobile-stats">
+                    <span class="sv-mini-tag sq">${getTeamAbbr(r.Squadra)}</span>
+                    <span class="sv-mini-tag fm">FM ${r.FM || '—'}</span>
+                    <span class="sv-mini-tag mv">MV ${r.MV || '—'}</span>
+                    <span class="sv-mini-tag pg">PG ${r.PG || '0'}</span>
+                </div>
+            </div>
+        </td>
         <td class="hide-sm" style="color:var(--tx2)">${r.Squadra}</td>
         <td class="n fvm-val">
             <span class="hide-sm">${r.FVM}</span>
-            <span class="show-sm sq-badge">${getTeamAbbr(r.Squadra)}</span>
+            <span class="show-sm fvm-badge">FVM ${r.FVM}</span>
         </td>
-        <td class="n">${r.FM || '—'}</td>
+        <td class="n hide-sm">${r.FM || '—'}</td>
         <td class="n hide-sm">${r.MV || '—'}</td>
         <td class="n hide-sm">${r.PG}</td>
         <td class="n"><span class="qt">${r.Quotazione}</span></td>
@@ -554,12 +583,35 @@ function rMercato() {
         }
     }
 
-    // Ordina i cambi secondo la classifica generale
-    const teamOrder = S.standings.map(t => t.Fantasquadra);
+    // Ordinamento dinamico per CambiRimasti, CreditiRimasti o Fantasquadra
+    const col = S.sCol_mer || 'CambiRimasti';
+    const dir = S.sDir_mer || 'desc';
+
     const sortedCambi = [...S.cambi].sort((a, b) => {
-        const ia = teamOrder.indexOf(a.Fantasquadra);
-        const ib = teamOrder.indexOf(b.Fantasquadra);
-        return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+        if (col === 'Fantasquadra') {
+            const res = a.Fantasquadra.localeCompare(b.Fantasquadra);
+            return dir === 'asc' ? res : -res;
+        }
+
+        if (col === 'CambiRimasti') {
+            const ca = +a.CambiRimasti || 0;
+            const cb = +b.CambiRimasti || 0;
+            if (ca !== cb) {
+                return dir === 'asc' ? ca - cb : cb - ca;
+            }
+            return (+b.CreditiRimasti || 0) - (+a.CreditiRimasti || 0);
+        }
+
+        if (col === 'CreditiRimasti') {
+            const cra = +a.CreditiRimasti || 0;
+            const crb = +b.CreditiRimasti || 0;
+            if (cra !== crb) {
+                return dir === 'asc' ? cra - crb : crb - cra;
+            }
+            return (+b.CambiRimasti || 0) - (+a.CambiRimasti || 0);
+        }
+
+        return 0;
     });
 
     const tbody = document.querySelector('#tCambi tbody');
@@ -585,6 +637,20 @@ function rMercato() {
             <td class="n">${credHtml}</td>
         </tr>`;
     }).join('');
+
+    // Update Header Sort Arrows for Mercato
+    document.querySelectorAll('#tCambi th[data-sm]').forEach(th => {
+        th.classList.remove('sa', 'sd');
+        const thCol = th.dataset.sm;
+        const arrow = thCol === S.sCol_mer ? (S.sDir_mer === 'asc' ? '↑' : '↓') : '⇕';
+        if (thCol === S.sCol_mer) {
+            th.classList.add(S.sDir_mer === 'asc' ? 'sa' : 'sd');
+        }
+
+        let label = th.dataset.label || th.textContent.replace(/[ ⇕↑↓]/g, '').trim();
+        th.dataset.label = label;
+        th.innerHTML = `${label} &nbsp;${arrow}`;
+    });
 }
 
 // ── Render All ───────────────────────────────────────────────────────
@@ -754,6 +820,16 @@ function setup() {
             S.sDir = (S.sCol === c && S.sDir === 'desc') ? 'asc' : 'desc';
             S.sCol = c;
             rSv();
+        })
+    );
+
+    // Mercato — Header Click Sort
+    document.querySelectorAll('#tCambi th[data-sm]').forEach(th =>
+        th.addEventListener('click', () => {
+            const c = th.dataset.sm;
+            S.sDir_mer = (S.sCol_mer === c && S.sDir_mer === 'desc') ? 'asc' : 'desc';
+            S.sCol_mer = c;
+            rMercato();
         })
     );
 }

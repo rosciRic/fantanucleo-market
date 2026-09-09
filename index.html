@@ -146,9 +146,9 @@
             <div class="scroll">
                 <table id="tCambi">
                     <thead><tr>
-                        <th>Squadra</th>
-                        <th class="n">Cambi rimasti</th>
-                        <th class="n">Crediti residui</th>
+                        <th data-sm="Fantasquadra" data-label="Squadra">Squadra &nbsp;⇕</th>
+                        <th class="n" data-sm="CambiRimasti" data-label="Cambi rimasti">Cambi rimasti &nbsp;⇕</th>
+                        <th class="n" data-sm="CreditiRimasti" data-label="Crediti residui">Crediti residui &nbsp;⇕</th>
                     </tr></thead>
                     <tbody></tbody>
                 </table>
@@ -170,10 +170,26 @@
             <button id="pmClose" class="pm-close">&times;</button>
         </div>
         <div class="pm-body">
-            <div class="pm-info-grid">
+            <div id="pmInfoGrid" class="pm-info-grid">
                 <div class="pm-stat">
                     <span class="pm-stat-lbl">Quotazione</span>
                     <span id="pmQuot" class="pm-stat-val">0 cr</span>
+                </div>
+                <div class="pm-stat">
+                    <span class="pm-stat-lbl">FVM</span>
+                    <span id="pmFVM" class="pm-stat-val">—</span>
+                </div>
+                <div class="pm-stat">
+                    <span class="pm-stat-lbl">Fantamedia</span>
+                    <span id="pmFM" class="pm-stat-val">—</span>
+                </div>
+                <div class="pm-stat">
+                    <span class="pm-stat-lbl">Media Voto</span>
+                    <span id="pmMV" class="pm-stat-val">—</span>
+                </div>
+                <div class="pm-stat">
+                    <span class="pm-stat-lbl">Partite (PG)</span>
+                    <span id="pmPG" class="pm-stat-val">—</span>
                 </div>
                 <div class="pm-stat">
                     <span class="pm-stat-lbl">Possessori</span>

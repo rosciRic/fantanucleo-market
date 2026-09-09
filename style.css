@@ -695,12 +695,13 @@ th {
     cursor: default;
     user-select: none;
 }
-th[data-s] {
+th[data-s], th[data-sg], th[data-sm] {
     cursor: pointer;
-    transition: color 0.12s ease;
+    user-select: none;
+    transition: color 0.12s ease, background 0.12s ease;
 }
-th[data-s]:hover {
-    color: var(--tx);
+th[data-s]:hover, th[data-sg]:hover, th[data-sm]:hover {
+    color: var(--accent);
 }
 th.sa, th.sd {
     color: var(--accent);
@@ -1317,7 +1318,6 @@ tr[data-role="A"] { border-left: 3px solid #ef4444 !important; }
     }
     #tGiocatori td:nth-child(1) { grid-area: role; align-self: center; border: none; padding: 0 6px 0 0; }
     #tGiocatori td:nth-child(2) { grid-area: nome; font-weight: 600; border: none; padding: 0 6px; font-size: 14px; }
-    #tGiocatori td:nth-child(3) { grid-area: squadra; border: none; padding: 0 6px; }
     #tGiocatori td:nth-child(4) { grid-area: quot; text-align: right; border: none; padding: 0; }
     #tGiocatori td:nth-child(5) { grid-area: possesso; text-align: right; border: none; padding: 0; }
 
@@ -1335,18 +1335,17 @@ tr[data-role="A"] { border-left: 3px solid #ef4444 !important; }
         grid-template-columns: auto 1fr auto;
         grid-template-areas:
             "role nome quot"
-            "role sqfvm fm";
+            "role nome fvm";
         padding: 10px 12px;
         border-radius: 10px;
         background: var(--card);
         border: 1px solid var(--line);
         align-items: center;
     }
-    #tSv td:nth-child(1) { grid-area: role; align-self: center; border: none; padding: 0 6px 0 0; }
-    #tSv td:nth-child(2) { grid-area: nome; font-weight: 600; border: none; padding: 0 6px; font-size: 14px; }
-    #tSv td:nth-child(3), #tSv td:nth-child(6), #tSv td:nth-child(7) { display: none; }
-    #tSv td:nth-child(4) { grid-area: sqfvm; border: none; padding: 0 6px; }
-    #tSv td:nth-child(5) { grid-area: fm; text-align: right; border: none; padding: 0; font-size: 12px; color: var(--tx2); }
+    #tSv td:nth-child(1) { grid-area: role; align-self: flex-start; margin-top: 2px; border: none; padding: 0 6px 0 0; }
+    #tSv td:nth-child(2) { grid-area: nome; border: none; padding: 0 6px; }
+    #tSv td:nth-child(3), #tSv td:nth-child(5), #tSv td:nth-child(6), #tSv td:nth-child(7) { display: none; }
+    #tSv td:nth-child(4) { grid-area: fvm; text-align: right; border: none; padding: 0; }
     #tSv td:nth-child(8) { grid-area: quot; text-align: right; border: none; padding: 0; }
 
     /* 3. Tab Crediti & Cambi Cards */
@@ -1395,6 +1394,60 @@ tr[data-role="A"] { border-left: 3px solid #ef4444 !important; }
         flex: 1;
         height: 8px;
     }
+}
+
+/* ── SVINCOLATI MINI TAGS & METRICS ── */
+.sv-name-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.sv-pname {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--tx);
+}
+.sv-mobile-stats {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+.sv-mini-tag {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--tx2);
+    font-variant-numeric: tabular-nums;
+}
+.sv-mini-tag.fm {
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.1);
+    border-color: rgba(56, 189, 248, 0.2);
+}
+.sv-mini-tag.mv {
+    color: #a7f3d0;
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.2);
+}
+.sv-mini-tag.pg {
+    color: #fef08a;
+    background: rgba(234, 179, 8, 0.1);
+    border-color: rgba(234, 179, 8, 0.2);
+}
+.fvm-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    color: #c084fc;
+    background: rgba(168, 85, 247, 0.12);
+    border: 1px solid rgba(168, 85, 247, 0.25);
+    padding: 2px 6px;
+    border-radius: 5px;
+    font-variant-numeric: tabular-nums;
 }
 
 /* ── INTERACTIVE ROWS ── */
