@@ -1217,39 +1217,358 @@ tbody tr:hover td {
     border-color: rgba(168, 85, 247, 0.4);
 }
 
-.owner-tag {
+/* ── COMPONENTE POSSESSO (3 STATI) ── */
+.pos-status {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 3px 9px;
-    border-radius: 6px;
+    gap: 6px;
     font-size: 12px;
-    font-weight: 600;
     line-height: 1.3;
 }
 
-.owner-tag.svinc {
-    background: rgba(34, 197, 94, 0.12);
+/* Stato 1: Svincolato */
+.pos-status.free {
     color: #4ade80;
-    border: 1px solid rgba(34, 197, 94, 0.25);
+    font-weight: 600;
 }
 
-.owner-tag.single {
-    background: rgba(239, 68, 68, 0.12);
-    color: #f87171;
-    border: 1px solid rgba(239, 68, 68, 0.25);
-}
-
-.owner-tag.multi {
-    background: rgba(168, 85, 247, 0.15);
-    color: #e9d5ff;
-    border: 1px solid rgba(168, 85, 247, 0.3);
-}
-
-.owner-teams {
-    font-size: 11px;
+/* Stato 2: 1 Squadra */
+.pos-status.single {
+    color: #cbd5e1;
     font-weight: 500;
-    color: #c084fc;
 }
+
+/* Stato 3: 2+ Squadre (Multi-girone) */
+.pos-status.multi {
+    color: #e9d5ff;
+    font-weight: 500;
+}
+
+.pos-badge {
+    background: rgba(168, 85, 247, 0.2);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.35);
+    font-size: 10px;
+    font-weight: 800;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+}
+
+.pos-teams {
+    color: #e9d5ff;
+    font-weight: 500;
+}
+
+
+/* ── TABULAR NUMBERS ── */
+td.n, th.n, .qt, .cnt, .ac-qt {
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── ROLE ACCENT BORDERS (Scansione Visiva Immediata) ── */
+tr[data-role="P"] { border-left: 3px solid #eab308 !important; }
+tr[data-role="D"] { border-left: 3px solid #3b82f6 !important; }
+tr[data-role="C"] { border-left: 3px solid #10b981 !important; }
+tr[data-role="A"] { border-left: 3px solid #ef4444 !important; }
+
+/* ── MOBILE CARD LAYOUT (< 640px) ── */
+@media (max-width: 640px) {
+    /* Horizontal scroll for pills */
+    .pill-group {
+        max-width: 100%;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: 2px;
+    }
+    .pill-group::-webkit-scrollbar {
+        display: none;
+    }
+    .filter-row {
+        gap: 8px;
+    }
+    .filter-label {
+        display: none;
+    }
+
+    /* 1. Tab Giocatori Cards */
+    #tGiocatori table, #tGiocatori thead {
+        display: none;
+    }
+    #tGiocatori tbody {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    #tGiocatori tbody tr {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        grid-template-areas:
+            "role nome quot"
+            "role squadra possesso";
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        align-items: center;
+    }
+    #tGiocatori td:nth-child(1) { grid-area: role; align-self: center; border: none; padding: 0 6px 0 0; }
+    #tGiocatori td:nth-child(2) { grid-area: nome; font-weight: 600; border: none; padding: 0 6px; font-size: 14px; }
+    #tGiocatori td:nth-child(3) { grid-area: squadra; border: none; padding: 0 6px; }
+    #tGiocatori td:nth-child(4) { grid-area: quot; text-align: right; border: none; padding: 0; }
+    #tGiocatori td:nth-child(5) { grid-area: possesso; text-align: right; border: none; padding: 0; }
+
+    /* 2. Tab Svincolati Cards */
+    #tSv table, #tSv thead {
+        display: none;
+    }
+    #tSv tbody {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    #tSv tbody tr {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        grid-template-areas:
+            "role nome quot"
+            "role sqfvm fm";
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        align-items: center;
+    }
+    #tSv td:nth-child(1) { grid-area: role; align-self: center; border: none; padding: 0 6px 0 0; }
+    #tSv td:nth-child(2) { grid-area: nome; font-weight: 600; border: none; padding: 0 6px; font-size: 14px; }
+    #tSv td:nth-child(3), #tSv td:nth-child(6), #tSv td:nth-child(7) { display: none; }
+    #tSv td:nth-child(4) { grid-area: sqfvm; border: none; padding: 0 6px; }
+    #tSv td:nth-child(5) { grid-area: fm; text-align: right; border: none; padding: 0; font-size: 12px; color: var(--tx2); }
+    #tSv td:nth-child(8) { grid-area: quot; text-align: right; border: none; padding: 0; }
+
+    /* 3. Tab Crediti & Cambi Cards */
+    #tCambi table, #tCambi thead {
+        display: none;
+    }
+    #tCambi tbody {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    #tCambi tbody tr {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        background: var(--card);
+        border: 1px solid var(--line);
+    }
+    #tCambi td {
+        border: none !important;
+        padding: 0 !important;
+    }
+    #tCambi td:nth-child(1) {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--tx);
+    }
+    #tCambi td:nth-child(3) {
+        text-align: right;
+    }
+    #tCambi td:nth-child(2) {
+        width: 100%;
+        margin-top: 4px;
+        padding-top: 6px !important;
+        border-top: 1px solid rgba(255,255,255,0.06) !important;
+    }
+    #tCambi .cambi-bar-wrap {
+        width: 100%;
+        justify-content: space-between;
+    }
+    #tCambi .cambi-track {
+        flex: 1;
+        height: 8px;
+    }
+}
+
+/* ── INTERACTIVE ROWS ── */
+tbody tr[data-player-name] {
+    cursor: pointer;
+}
+tbody tr[data-player-name]:hover {
+    background: rgba(168, 85, 247, 0.06) !important;
+}
+
+/* ── MODAL DETTAGLIO CALCIATORE ── */
+.player-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.player-modal.show {
+    display: flex;
+    opacity: 1;
+}
+
+.player-modal-content {
+    background: #12141c;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(168, 85, 247, 0.15);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 440px;
+    padding: 20px;
+    transform: scale(0.95);
+    transition: transform 0.2s ease;
+}
+
+.player-modal.show .player-modal-content {
+    transform: scale(1);
+}
+
+.pm-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--line);
+}
+
+.pm-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pm-nome {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--tx);
+}
+
+.pm-sq {
+    font-size: 13px;
+    color: var(--tx2);
+    font-weight: 500;
+}
+
+.pm-close {
+    background: transparent;
+    border: none;
+    color: var(--tx2);
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.pm-close:hover {
+    color: var(--tx);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.pm-body {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.pm-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.pm-stat {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.pm-stat-lbl {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--tx3);
+    font-weight: 600;
+}
+
+.pm-stat-val {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--tx);
+}
+
+.pm-owners-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.pm-section-lbl {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tx2);
+}
+
+.pm-owners-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    max-height: 180px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.pm-owner-chip {
+    background: rgba(168, 85, 247, 0.12);
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    color: #e9d5ff;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pm-free-tag {
+    color: #10b981;
+    font-size: 13px;
+    font-weight: 600;
+    background: rgba(16, 185, 129, 0.1);
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+
+
+
+
+
 
 

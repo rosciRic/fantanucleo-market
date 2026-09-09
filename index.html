@@ -30,11 +30,6 @@
     </nav>
 
     <div class="bar-right">
-        <button id="btnGlobalSearch" class="btn-subtle gs-trigger" title="Cerca Giocatore (Ctrl+K)">
-            <span class="gs-icon">🔍</span>
-            <span class="gs-text">Cerca...</span>
-            <kbd class="gs-kbd">Ctrl K</kbd>
-        </button>
         <div class="gn-nav">
             <button class="gn-btn" id="gnPrev" title="Giornata precedente">‹</button>
             <button class="gn-label" id="gnLabel" title="Seleziona giornata">G1</button>
@@ -70,9 +65,8 @@
                 <div class="pill-group">
                     <span class="filter-label">Stato:</span>
                     <button class="pill-gio-s pill on" data-st="">Tutti</button>
-                    <button class="pill-gio-s pill st-svinc" data-st="svincolato">🟢 Svincolati</button>
-                    <button class="pill-gio-s pill st-poss" data-st="posseduto">🔴 Posseduti</button>
-                    <button class="pill-gio-s pill st-multi" data-st="multi">🟣 2+ Squadre</button>
+                    <button class="pill-gio-s pill st-svinc" data-st="svincolato">Svincolati</button>
+                    <button class="pill-gio-s pill st-poss" data-st="posseduto">Posseduti</button>
                 </div>
 
                 <span class="cnt" id="cntGio"></span>
@@ -83,11 +77,11 @@
             <div class="scroll">
                 <table id="tGiocatori">
                     <thead><tr>
-                        <th>R</th>
-                        <th>Nome</th>
+                        <th data-sg="Ruolo">R ⇕</th>
+                        <th data-sg="Nome">Nome ⇕</th>
                         <th>Squadra</th>
                         <th class="n" data-sg="Quotazione">Quot (cr) ⇕</th>
-                        <th>Stato / Squadre Posseditrici</th>
+                        <th data-sg="owners">Possesso ⇕</th>
                     </tr></thead>
                     <tbody></tbody>
                 </table>
@@ -117,6 +111,7 @@
                     <button class="pill pc" data-r="C">C <span class="pill-cnt" id="cnt-c"></span></button>
                     <button class="pill pa" data-r="A">A <span class="pill-cnt" id="cnt-a"></span></button>
                 </div>
+
                 <span class="cnt" id="cnt"></span>
             </div>
         </div>
@@ -163,16 +158,31 @@
 
 </main>
 
-<!-- MODAL RICERCA GLOBALE -->
-<div id="gsModal" class="gs-modal">
-    <div class="gs-modal-content">
-        <div class="gs-header">
-            <h3 id="gsTitle">🔍 Cerca Giocatore</h3>
-            <button id="gsClose" class="gs-close">&times;</button>
+<!-- MODAL DETTAGLIO CALCIATORE -->
+<div id="playerModal" class="player-modal">
+    <div class="player-modal-content">
+        <div class="pm-header">
+            <div class="pm-title-wrap">
+                <span id="pmRuolo" class="rb">P</span>
+                <span id="pmNome" class="pm-nome">Nome</span>
+                <span id="pmSq" class="pm-sq">(Squadra)</span>
+            </div>
+            <button id="pmClose" class="pm-close">&times;</button>
         </div>
-        <div class="gs-body">
-            <input type="text" id="gsInput" class="search" placeholder="Inserisci nome giocatore..." autocomplete="off">
-            <div id="gsResults" class="gs-results"></div>
+        <div class="pm-body">
+            <div class="pm-info-grid">
+                <div class="pm-stat">
+                    <span class="pm-stat-lbl">Quotazione</span>
+                    <span id="pmQuot" class="pm-stat-val">0 cr</span>
+                </div>
+                <div class="pm-stat">
+                    <span class="pm-stat-lbl">Possessori</span>
+                    <span id="pmCount" class="pm-stat-val">0 squadre</span>
+                </div>
+            </div>
+            <div class="pm-owners-section">
+                <div id="pmOwnersList" class="pm-owners-list"></div>
+            </div>
         </div>
     </div>
 </div>

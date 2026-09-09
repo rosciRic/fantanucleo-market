@@ -13,7 +13,7 @@ const S = {
     // Filtri Svincolati
     fR: '',
     fQ: '',
-    sCol: 'FVM',
+    sCol: 'Quotazione',
     sDir: 'desc',
 
     // Filtri Database Giocatori
@@ -24,9 +24,62 @@ const S = {
     sDir_gio: 'desc'
 };
 
+const ROLE_ORDER = { P: 1, D: 2, C: 3, A: 4 };
+
 // Helper per identificare ed escludere i calciatori "fuori lista" (contrassegnati da *)
 function isAsterisk(str) {
     return !!(str && String(str).includes('*'));
+}
+
+// Helper Debounce per ricerca fluida a 60fps
+function debounce(fn, delay = 120) {
+    let timer;
+    return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn(...args), delay);
+    };
+}
+
+// ── COMPONENTE POSSESSO (3 STATI COMPATTI) ──
+function renderPossesso(owners = []) {
+    const count = owners.length;
+    if (count === 0) {
+        return `<span class="pos-status free">Svincolato</span>`;
+    }
+    if (count === 1) {
+        return `<span class="pos-status single"><span class="pos-badge">1x</span><span class="pos-team hide-sm">${owners[0]}</span></span>`;
+    }
+    return `<span class="pos-status multi"><span class="pos-badge">${count}x</span><span class="pos-team hide-sm">${owners[0]} +${count - 1}</span></span>`;
+}
+
+// ── MODAL DETTAGLIO CALCIATORE ──
+function openPlayerModal(p) {
+    const modal = $('playerModal');
+    if (!modal || !p) return;
+
+    $('pmRuolo').textContent = p.ruolo || '?';
+    $('pmRuolo').className = `rb rb-${(p.ruolo || '').toLowerCase()}`;
+    $('pmNome').textContent = p.nome;
+    $('pmSq').textContent = p.sq ? `(${p.sq})` : '';
+    $('pmQuot').textContent = `${p.quot || 0} cr`;
+
+    const count = p.owners ? p.owners.length : 0;
+    $('pmCount').textContent = count === 0 ? 'Svincolato' : `${count} fantasquadre`;
+
+    const ownersListEl = $('pmOwnersList');
+    if (count === 0) {
+        ownersListEl.innerHTML = `<span class="pm-free-tag">🟢 Calciatore libero sul mercato</span>`;
+    } else {
+        ownersListEl.innerHTML = p.owners.map(team =>
+            `<div class="pm-owner-chip">⚽ ${team}</div>`
+        ).join('');
+    }
+
+    modal.classList.add('show');
+}
+
+function closePlayerModal() {
+    $('playerModal')?.classList.remove('show');
 }
 
 // ── CSV Parser ───────────────────────────────────────────────────────
@@ -297,8 +350,6 @@ function rGiocatori() {
         list = list.filter(p => p.isSvincolato || p.owners.length === 0);
     } else if (S.fS_gio === 'posseduto') {
         list = list.filter(p => p.owners.length > 0);
-    } else if (S.fS_gio === 'multi') {
-        list = list.filter(p => p.owners.length > 1);
     }
 
     // Filtro Ricerca
@@ -310,19 +361,46 @@ function rGiocatori() {
         );
     }
 
-    // Ordinamento
+    // Ordinamento principale
     list.sort((a, b) => {
-        let av = a[S.sCol_gio], bv = b[S.sCol_gio];
-        if (S.sCol_gio === 'Quotazione') { av = a.quot; bv = b.quot; }
-        else if (S.sCol_gio === 'Nome') { av = a.nome; bv = b.nome; }
-        else if (S.sCol_gio === 'Ruolo') { av = a.ruolo; bv = b.ruolo; }
-
-        if (typeof av === 'number' && typeof bv === 'number') {
-            return S.sDir_gio === 'asc' ? av - bv : bv - av;
+        if (S.sCol_gio === 'Nome') {
+            const res = a.nome.localeCompare(b.nome);
+            return S.sDir_gio === 'asc' ? res : -res;
         }
-        return S.sDir_gio === 'asc'
-            ? String(av).localeCompare(String(bv))
-            : String(bv).localeCompare(String(av));
+
+        if (S.sCol_gio === 'Quotazione') {
+            const qa = a.quot || 0;
+            const qb = b.quot || 0;
+            if (qa !== qb) {
+                return S.sDir_gio === 'asc' ? qa - qb : qb - qa;
+            }
+        }
+
+        if (S.sCol_gio === 'owners') {
+            const oa = a.owners.length;
+            const ob = b.owners.length;
+            if (oa !== ob) {
+                return S.sDir_gio === 'asc' ? oa - ob : ob - oa; // decrescente (più posseduti in alto)
+            }
+            // A parità di possessori: ordina per Quotazione decrescente
+            return (b.quot || 0) - (a.quot || 0);
+        }
+
+        // Gruppo Ruolo P -> D -> C -> A
+        const ra = ROLE_ORDER[a.ruolo] || 99;
+        const rb = ROLE_ORDER[b.ruolo] || 99;
+        if (ra !== rb) {
+            return S.sDir_gio === 'asc' ? ra - rb : rb - ra;
+        }
+
+        // Dentro lo stesso ruolo: Crediti SEMPRE DECRESCENTI (dal più alto al più basso)
+        const qa = a.quot || 0;
+        const qb = b.quot || 0;
+        if (qa !== qb) {
+            return qb - qa;
+        }
+
+        return a.nome.localeCompare(b.nome);
     });
 
     if ($('cntGio')) $('cntGio').textContent = `${list.length} calciatori`;
@@ -340,16 +418,9 @@ function rGiocatori() {
     }
 
     tbody.innerHTML = list.map(p => {
-        let ownerHtml = '';
-        if (p.owners.length === 0) {
-            ownerHtml = `<span class="owner-tag svinc">🟢 Svincolato</span>`;
-        } else if (p.owners.length === 1) {
-            ownerHtml = `<span class="owner-tag single">🔴 ${p.owners[0]}</span>`;
-        } else {
-            ownerHtml = `<span class="owner-tag multi">🟣 <strong>${p.owners.length} squadre</strong>: ${p.owners.join(', ')}</span>`;
-        }
+        const ownerHtml = renderPossesso(p.owners);
 
-        return `<tr>
+        return `<tr data-role="${p.ruolo}" data-player-name="${p.nome}">
             <td><span class="rb rb-${(p.ruolo || '').toLowerCase()}">${p.ruolo || '?'}</span></td>
             <td style="font-weight:600">${p.nome}</td>
             <td style="color:var(--tx2)">
@@ -360,6 +431,15 @@ function rGiocatori() {
             <td>${ownerHtml}</td>
         </tr>`;
     }).join('');
+
+    // Wire Click on rows to open Player Detail Modal
+    tbody.querySelectorAll('tr[data-player-name]').forEach(tr => {
+        tr.addEventListener('click', () => {
+            const pName = tr.dataset.playerName;
+            const p = S.dbGiocatori.find(x => x.nome === pName);
+            if (p) openPlayerModal(p);
+        });
+    });
 
     // Update Header Sort Arrows
     document.querySelectorAll('#tGiocatori th[data-sg]').forEach(th => {
@@ -412,7 +492,7 @@ function rSv() {
         emptyEl.style.display = 'none';
     }
 
-    tbody.innerHTML = d.map(r => `<tr>
+    tbody.innerHTML = d.map(r => `<tr data-role="${r.Ruolo}" data-player-name="${r.Nome}">
         <td><span class="rb rb-${r.Ruolo.toLowerCase()}">${r.Ruolo}</span></td>
         <td style="font-weight:600">${r.Nome}</td>
         <td class="hide-sm" style="color:var(--tx2)">${r.Squadra}</td>
@@ -425,6 +505,15 @@ function rSv() {
         <td class="n hide-sm">${r.PG}</td>
         <td class="n"><span class="qt">${r.Quotazione}</span></td>
     </tr>`).join('');
+
+    // Wire Click on rows to open Player Detail Modal
+    tbody.querySelectorAll('tr[data-player-name]').forEach(tr => {
+        tr.addEventListener('click', () => {
+            const pName = tr.dataset.playerName;
+            const p = S.dbGiocatori.find(x => x.nome === pName);
+            if (p) openPlayerModal(p);
+        });
+    });
 
     // Indicatori frecce ordini header
     document.querySelectorAll('#tSv th[data-s]').forEach(th => {
@@ -505,88 +594,40 @@ function render() {
     rMercato();
 }
 
-// ── Global Search Modal ──────────────────────────────────────────────
-function initGlobalSearch() {
-    const modal = $('gsModal');
-    const btn = $('btnGlobalSearch');
-    const close = $('gsClose');
-    const input = $('gsInput');
-    const res = $('gsResults');
-    if (!modal || !btn) return;
-
-    function openGS() {
-        modal.classList.add('show');
-        if ($('gsTitle')) $('gsTitle').textContent = `🔍 Cerca Giocatore (Giornata ${S.gn})`;
-        input.value = '';
-        res.innerHTML = '';
-        input.focus();
-    }
-    function closeGS() {
-        modal.classList.remove('show');
-    }
-
-    btn.addEventListener('click', openGS);
-    close.addEventListener('click', closeGS);
-    modal.addEventListener('click', e => { if (e.target === modal) closeGS(); });
-
-    document.addEventListener('keydown', e => {
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-            e.preventDefault();
-            modal.classList.contains('show') ? closeGS() : openGS();
-        }
-        if (e.key === 'Escape' && modal.classList.contains('show')) {
-            closeGS();
-        }
-    });
-
-    input.addEventListener('input', () => {
-        const q = input.value.trim().toLowerCase();
-        if (q.length < 2) { res.innerHTML = ''; return; }
-
-        let matches = S.dbGiocatori.filter(p =>
-            p.nome.toLowerCase().includes(q) ||
-            p.sq.toLowerCase().includes(q)
-        );
-
-        matches.sort((a, b) => a.nome.localeCompare(b.nome));
-
-        if (matches.length === 0) {
-            res.innerHTML = '<div style="padding:10px; color:var(--tx3); text-align:center;">Nessun giocatore trovato.</div>';
-            return;
-        }
-
-        res.innerHTML = matches.map(m => {
-            const rCol = { P: '#fbbf24', D: '#4ade80', C: '#38bdf8', A: '#f87171' }[m.ruolo] || '#fff';
-            const rBg = { P: 'rgba(251,191,36,0.15)', D: 'rgba(74,222,128,0.15)', C: 'rgba(56,189,248,0.15)', A: 'rgba(248,113,113,0.15)' }[m.ruolo] || 'rgba(255,255,255,0.1)';
-            
-            let badges = '';
-            if (m.owners.length === 0) {
-                badges = `<span class="gs-owner svinc">Svincolato</span>`;
-            } else {
-                badges = m.owners.map(o => `<span class="gs-owner rosa">${o}</span>`).join('');
-            }
-
-            const sqStr = m.sq ? `(${m.sq})` : '';
-
-            return `
-                <div class="gs-item" style="align-items: flex-start;">
-                    <div style="flex-shrink:0; margin-right:10px; padding-top:2px;">
-                        <span class="gs-ruolo" style="color:${rCol}; background:${rBg};">${m.ruolo || '?'}</span>
-                        <span class="gs-nome">${m.nome}</span>
-                        <span class="gs-sq">${sqStr}</span>
-                    </div>
-                    <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-end;">
-                        ${badges}
-                    </div>
-                </div>
-            `;
-        }).join('');
-    });
-}
-
 // ── Events Setup ─────────────────────────────────────────────────────
 function setup() {
-    initGlobalSearch();
+    // Player Modal Close
+    $('pmClose')?.addEventListener('click', closePlayerModal);
+    $('playerModal')?.addEventListener('click', e => {
+        if (e.target === $('playerModal')) closePlayerModal();
+    });
+
+    // Keyboard Shortcuts per Asta Live
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            closePlayerModal();
+            return;
+        }
+        if (e.target.matches('input, textarea')) return;
+
+        if (e.key === '/') {
+            e.preventDefault();
+            const qInput = $('qGio') || $('q');
+            if (qInput) qInput.focus();
+        } else if (['1', '2', '3'].includes(e.key)) {
+            const tabs = document.querySelectorAll('.t');
+            const idx = Number(e.key) - 1;
+            if (tabs[idx]) tabs[idx].click();
+        } else if (['p', 'd', 'c', 'a'].includes(e.key.toLowerCase())) {
+            const rKey = e.key.toUpperCase();
+            const rBtn = document.querySelector(`.pill-gio-r[data-r="${rKey}"]`);
+            if (rBtn) rBtn.click();
+        } else if (e.key === 'ArrowLeft') {
+            $('gnPrev')?.click();
+        } else if (e.key === 'ArrowRight') {
+            $('gnNext')?.click();
+        }
+    });
 
     // Tabs Navigation
     document.querySelectorAll('.t').forEach(b =>
@@ -614,16 +655,18 @@ function setup() {
     });
     document.addEventListener('click', () => { if (pickerOpen) closePicker(); });
 
-    // Database Giocatori — Ricerca
+    // Database Giocatori — Ricerca con Debounce
     const qGioInput = $('qGio');
     const clearGioBtn = $('searchClearGio');
 
+    const debouncedSearchGio = debounce(value => {
+        S.fQ_gio = value.toLowerCase().trim();
+        if (clearGioBtn) clearGioBtn.style.display = S.fQ_gio ? 'block' : 'none';
+        rGiocatori();
+    }, 120);
+
     if (qGioInput) {
-        qGioInput.addEventListener('input', e => {
-            S.fQ_gio = e.target.value.toLowerCase().trim();
-            if (clearGioBtn) clearGioBtn.style.display = S.fQ_gio ? 'block' : 'none';
-            rGiocatori();
-        });
+        qGioInput.addEventListener('input', e => debouncedSearchGio(e.target.value));
     }
 
     if (clearGioBtn) {
@@ -642,6 +685,8 @@ function setup() {
             document.querySelectorAll('.pill-gio-r').forEach(x => x.classList.remove('on'));
             p.classList.add('on');
             S.fR_gio = p.dataset.r;
+            S.sCol_gio = 'Quotazione';
+            S.sDir_gio = 'desc';
             rGiocatori();
         })
     );
@@ -666,16 +711,18 @@ function setup() {
         })
     );
 
-    // Svincolati — Ricerca
+    // Svincolati — Ricerca con Debounce
     const searchInput = $('q');
     const clearBtn = $('searchClear');
 
+    const debouncedSearchSv = debounce(value => {
+        S.fQ = value.toLowerCase().trim();
+        if (clearBtn) clearBtn.style.display = S.fQ ? 'block' : 'none';
+        rSv();
+    }, 120);
+
     if (searchInput) {
-        searchInput.addEventListener('input', e => {
-            S.fQ = e.target.value.toLowerCase().trim();
-            if (clearBtn) clearBtn.style.display = S.fQ ? 'block' : 'none';
-            rSv();
-        });
+        searchInput.addEventListener('input', e => debouncedSearchSv(e.target.value));
     }
 
     if (clearBtn) {
