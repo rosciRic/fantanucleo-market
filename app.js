@@ -20,9 +20,14 @@ const S = {
     fR_gio: '',
     fS_gio: '',
     fQ_gio: '',
-    sCol_gio: 'FVM',
+    sCol_gio: 'Quotazione',
     sDir_gio: 'desc'
 };
+
+// Helper per identificare ed escludere i calciatori "fuori lista" (contrassegnati da *)
+function isAsterisk(str) {
+    return !!(str && String(str).includes('*'));
+}
 
 // ── CSV Parser ───────────────────────────────────────────────────────
 function csv(t) {
@@ -97,11 +102,14 @@ async function load(n) {
         .map(r => ({ ...r, Punti: +r.Punti || 0, Posizione: +r.Posizione || 99 }))
         .sort((a, b) => a.Posizione - b.Posizione);
 
-    // Mappa Quotazioni Attuali dal Listone Ufficiale
+    // Mappa Quotazioni Attuali dal Listone Ufficiale (ESCLUDENDO fuori lista *)
     S.quotMap = {};
     for (const q of quot) {
-        const nomeKey = (q.Nome || '').replace(/\*/g, '').trim().toLowerCase();
+        if (isAsterisk(q.Nome)) continue;
+        const cleanName = (q.Nome || '').trim();
+        const nomeKey = cleanName.toLowerCase();
         S.quotMap[nomeKey] = {
+            nome: cleanName,
             sq: q.Squadra || '',
             ruolo: q.Ruolo || '',
             qta: +q.QtA || 0,
@@ -111,21 +119,24 @@ async function load(n) {
         };
     }
 
-    // Rose indicizzate per squadra
+    // Rose indicizzate per squadra (ESCLUDENDO fuori lista *)
     S.rose = {};
     for (const r of rose) {
+        if (isAsterisk(r.Calciatore) || isAsterisk(r.Nome)) continue;
         (S.rose[r.Fantasquadra] ??= []).push(r);
     }
 
-    // Svincolati con tipi numerici
-    S.sv = sv.map(r => ({
-        ...r,
-        PG: +r.PG || 0,
-        MV: +r.MV || 0,
-        FM: +r.FM || 0,
-        FVM: +r.FVM || 0,
-        Quotazione: +r.Quotazione || 0
-    }));
+    // Svincolati con tipi numerici (ESCLUDENDO fuori lista *)
+    S.sv = sv
+        .filter(r => !isAsterisk(r.Nome) && !isAsterisk(r.Calciatore))
+        .map(r => ({
+            ...r,
+            PG: +r.PG || 0,
+            MV: +r.MV || 0,
+            FM: +r.FM || 0,
+            FVM: +r.FVM || 0,
+            Quotazione: +r.Quotazione || 0
+        }));
 
     // Cambi con tipi numerici
     S.cambi = cambi.map(r => ({
@@ -137,9 +148,10 @@ async function load(n) {
     // ── Costruzione Database Unificato Calciatori e Possesso ──
     const dbMap = {};
 
-    // 1. Inserisci tutti i calciatori dal listone ufficiale quotazioni
+    // 1. Inserisci tutti i calciatori dal listone ufficiale quotazioni (escludendo *)
     for (const q of quot) {
-        const cleanName = (q.Nome || '').replace(/\*/g, '').trim();
+        if (isAsterisk(q.Nome)) continue;
+        const cleanName = (q.Nome || '').trim();
         if (!cleanName) continue;
         const key = cleanName.toLowerCase();
         dbMap[key] = {
@@ -153,10 +165,12 @@ async function load(n) {
         };
     }
 
-    // 2. Mappa i possessori dalle rose
+    // 2. Mappa i possessori dalle rose (escludendo *)
     for (const [fsq, giocatori] of Object.entries(S.rose)) {
         for (const g of giocatori) {
-            const pName = (g.Calciatore || g.Nome || '').replace(/\*/g, '').trim();
+            const rawName = g.Calciatore || g.Nome || '';
+            if (isAsterisk(rawName)) continue;
+            const pName = rawName.trim();
             if (!pName) continue;
             const key = pName.toLowerCase();
             if (!dbMap[key]) {
@@ -177,9 +191,11 @@ async function load(n) {
         }
     }
 
-    // 3. Marca gli svincolati
+    // 3. Marca gli svincolati (escludendo *)
     for (const svItem of S.sv) {
-        const pName = (svItem.Nome || svItem.Calciatore || '').replace(/\*/g, '').trim();
+        const rawName = svItem.Nome || svItem.Calciatore || '';
+        if (isAsterisk(rawName)) continue;
+        const pName = rawName.trim();
         if (!pName) continue;
         const key = pName.toLowerCase();
         if (!dbMap[key]) {
@@ -297,8 +313,7 @@ function rGiocatori() {
     // Ordinamento
     list.sort((a, b) => {
         let av = a[S.sCol_gio], bv = b[S.sCol_gio];
-        if (S.sCol_gio === 'FVM') { av = a.fvm; bv = b.fvm; }
-        else if (S.sCol_gio === 'Quotazione') { av = a.quot; bv = b.quot; }
+        if (S.sCol_gio === 'Quotazione') { av = a.quot; bv = b.quot; }
         else if (S.sCol_gio === 'Nome') { av = a.nome; bv = b.nome; }
         else if (S.sCol_gio === 'Ruolo') { av = a.ruolo; bv = b.ruolo; }
 
@@ -337,9 +352,8 @@ function rGiocatori() {
         return `<tr>
             <td><span class="rb rb-${(p.ruolo || '').toLowerCase()}">${p.ruolo || '?'}</span></td>
             <td style="font-weight:600">${p.nome}</td>
-            <td class="hide-sm" style="color:var(--tx2)">${p.sq || '—'}</td>
-            <td class="n fvm-val">
-                <span class="hide-sm">${p.fvm || '—'}</span>
+            <td style="color:var(--tx2)">
+                <span class="hide-sm">${p.sq || '—'}</span>
                 <span class="show-sm sq-badge">${getTeamAbbr(p.sq)}</span>
             </td>
             <td class="n"><span class="qt">${p.quot || '—'}</span></td>
@@ -352,17 +366,13 @@ function rGiocatori() {
         th.classList.remove('sa', 'sd');
         const col = th.dataset.sg;
         const arrow = col === S.sCol_gio ? (S.sDir_gio === 'asc' ? '↑' : '↓') : '⇕';
-        if (col === S.sCol_gio && !(window.innerWidth <= 768 && col === 'FVM')) {
+        if (col === S.sCol_gio) {
             th.classList.add(S.sDir_gio === 'asc' ? 'sa' : 'sd');
         }
 
-        if (col === 'FVM') {
-            th.innerHTML = `<span class="hide-sm">FVM ${arrow}</span><span class="show-sm">Sq.</span>`;
-        } else {
-            let label = (th.dataset.label || th.textContent).replace(/[ ⇕↑↓]/g, '');
-            th.dataset.label = label;
-            th.innerHTML = `${label} ${arrow}`;
-        }
+        let label = (th.dataset.label || th.textContent).replace(/[ ⇕↑↓]/g, '');
+        th.dataset.label = label;
+        th.innerHTML = `${label} ${arrow}`;
     });
 }
 
@@ -649,7 +659,6 @@ function setup() {
     // Database Giocatori — Sort colonne
     document.querySelectorAll('#tGiocatori th[data-sg]').forEach(th =>
         th.addEventListener('click', () => {
-            if (window.innerWidth <= 768 && th.dataset.sg === 'FVM') return;
             const c = th.dataset.sg;
             S.sDir_gio = (S.sCol_gio === c && S.sDir_gio === 'desc') ? 'asc' : 'desc';
             S.sCol_gio = c;
