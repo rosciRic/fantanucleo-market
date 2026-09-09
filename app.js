@@ -8,10 +8,20 @@ const S = {
     sv: [],
     cambi: [],
     quotMap: {},     // { nome_calciatore: { qta, qti, diff } }
+    dbGiocatori: [], // listone unificato calciatori con possesso
+
+    // Filtri Svincolati
     fR: '',
     fQ: '',
     sCol: 'FVM',
-    sDir: 'desc'
+    sDir: 'desc',
+
+    // Filtri Database Giocatori
+    fR_gio: '',
+    fS_gio: '',
+    fQ_gio: '',
+    sCol_gio: 'FVM',
+    sDir_gio: 'desc'
 };
 
 // ── CSV Parser ───────────────────────────────────────────────────────
@@ -35,6 +45,38 @@ async function get(p) {
 }
 
 const $ = id => document.getElementById(id);
+
+// ── Abbreviazione Squadre Serie A ───────────────────────────────────
+const TEAM_ABBR = {
+    'Atalanta': 'ATA',
+    'Bologna': 'BOL',
+    'Cagliari': 'CAG',
+    'Como': 'COM',
+    'Empoli': 'EMP',
+    'Fiorentina': 'FIO',
+    'Frosinone': 'FRO',
+    'Genoa': 'GEN',
+    'Inter': 'INT',
+    'Juventus': 'JUV',
+    'Lazio': 'LAZ',
+    'Lecce': 'LEC',
+    'Milan': 'MIL',
+    'Monza': 'MON',
+    'Napoli': 'NAP',
+    'Parma': 'PAR',
+    'Roma': 'ROM',
+    'Sassuolo': 'SAS',
+    'Torino': 'TOR',
+    'Udinese': 'UDI',
+    'Venezia': 'VEN',
+    'Verona': 'VER',
+    'Hellas Verona': 'VER'
+};
+
+function getTeamAbbr(sq) {
+    if (!sq) return '—';
+    return TEAM_ABBR[sq] || sq.substring(0, 3).toUpperCase();
+}
 
 // ── Data Loader ──────────────────────────────────────────────────────
 async function load(n) {
@@ -64,7 +106,8 @@ async function load(n) {
             ruolo: q.Ruolo || '',
             qta: +q.QtA || 0,
             qti: +q.QtI || 0,
-            diff: +q.Diff || 0
+            diff: +q.Diff || 0,
+            fvm: +q.FVM || 0
         };
     }
 
@@ -90,6 +133,74 @@ async function load(n) {
         CambiRimasti: +r.CambiRimasti || 0,
         CreditiRimasti: +r.CreditiRimasti || 0
     }));
+
+    // ── Costruzione Database Unificato Calciatori e Possesso ──
+    const dbMap = {};
+
+    // 1. Inserisci tutti i calciatori dal listone ufficiale quotazioni
+    for (const q of quot) {
+        const cleanName = (q.Nome || '').replace(/\*/g, '').trim();
+        if (!cleanName) continue;
+        const key = cleanName.toLowerCase();
+        dbMap[key] = {
+            nome: cleanName,
+            ruolo: q.Ruolo || '',
+            sq: q.Squadra || '',
+            fvm: +q.FVM || 0,
+            quot: +q.QtA || +q.Quotazione || 0,
+            owners: [],
+            isSvincolato: false
+        };
+    }
+
+    // 2. Mappa i possessori dalle rose
+    for (const [fsq, giocatori] of Object.entries(S.rose)) {
+        for (const g of giocatori) {
+            const pName = (g.Calciatore || g.Nome || '').replace(/\*/g, '').trim();
+            if (!pName) continue;
+            const key = pName.toLowerCase();
+            if (!dbMap[key]) {
+                const qInfo = S.quotMap[key] || {};
+                dbMap[key] = {
+                    nome: pName,
+                    ruolo: g.Ruolo || qInfo.ruolo || '',
+                    sq: g.Squadra || qInfo.sq || '',
+                    fvm: qInfo.fvm || 0,
+                    quot: +g.Costo || qInfo.qta || 0,
+                    owners: [],
+                    isSvincolato: false
+                };
+            }
+            if (!dbMap[key].owners.includes(fsq)) {
+                dbMap[key].owners.push(fsq);
+            }
+        }
+    }
+
+    // 3. Marca gli svincolati
+    for (const svItem of S.sv) {
+        const pName = (svItem.Nome || svItem.Calciatore || '').replace(/\*/g, '').trim();
+        if (!pName) continue;
+        const key = pName.toLowerCase();
+        if (!dbMap[key]) {
+            dbMap[key] = {
+                nome: pName,
+                ruolo: svItem.Ruolo || '',
+                sq: svItem.Squadra || '',
+                fvm: svItem.FVM || 0,
+                quot: svItem.Quotazione || 0,
+                owners: [],
+                isSvincolato: true
+            };
+        } else {
+            dbMap[key].isSvincolato = true;
+            if (svItem.FVM) dbMap[key].fvm = svItem.FVM;
+            if (svItem.Quotazione) dbMap[key].quot = svItem.Quotazione;
+            if (svItem.Squadra) dbMap[key].sq = svItem.Squadra;
+        }
+    }
+
+    S.dbGiocatori = Object.values(dbMap);
 
     updateCounts();
     render();
@@ -131,145 +242,127 @@ function closePicker() {
 
 // ── Count badges update ──────────────────────────────────────────────
 function updateCounts() {
-    const counts = { '': S.sv.length, P: 0, D: 0, C: 0, A: 0 };
+    // Svincolati counts
+    const countsSv = { '': S.sv.length, P: 0, D: 0, C: 0, A: 0 };
     for (const item of S.sv) {
-        if (counts[item.Ruolo] !== undefined) counts[item.Ruolo]++;
+        if (countsSv[item.Ruolo] !== undefined) countsSv[item.Ruolo]++;
     }
 
-    if ($('cnt-all')) $('cnt-all').textContent = `(${counts['']})`;
-    if ($('cnt-p')) $('cnt-p').textContent = `(${counts.P})`;
-    if ($('cnt-d')) $('cnt-d').textContent = `(${counts.D})`;
-    if ($('cnt-c')) $('cnt-c').textContent = `(${counts.C})`;
-    if ($('cnt-a')) $('cnt-a').textContent = `(${counts.A})`;
-}
+    if ($('cnt-all')) $('cnt-all').textContent = `(${countsSv['']})`;
+    if ($('cnt-p')) $('cnt-p').textContent = `(${countsSv.P})`;
+    if ($('cnt-d')) $('cnt-d').textContent = `(${countsSv.D})`;
+    if ($('cnt-c')) $('cnt-c').textContent = `(${countsSv.C})`;
+    if ($('cnt-a')) $('cnt-a').textContent = `(${countsSv.A})`;
 
-// ── Render Rose (con quotazioni attuali per calciatore) ───────────────
-function posC(p) { return p === 1 ? 'g' : p === 2 ? 's' : p === 3 ? 'b' : ''; }
-
-const ROLE_NAMES = {
-    P: 'Portieri',
-    D: 'Difensori',
-    C: 'Centrocampisti',
-    A: 'Attaccanti'
-};
-
-const TEAM_ABBR = {
-    'Atalanta': 'ATA',
-    'Bologna': 'BOL',
-    'Cagliari': 'CAG',
-    'Como': 'COM',
-    'Empoli': 'EMP',
-    'Fiorentina': 'FIO',
-    'Frosinone': 'FRO',
-    'Genoa': 'GEN',
-    'Inter': 'INT',
-    'Juventus': 'JUV',
-    'Lazio': 'LAZ',
-    'Lecce': 'LEC',
-    'Milan': 'MIL',
-    'Monza': 'MON',
-    'Napoli': 'NAP',
-    'Parma': 'PAR',
-    'Roma': 'ROM',
-    'Sassuolo': 'SAS',
-    'Torino': 'TOR',
-    'Udinese': 'UDI',
-    'Venezia': 'VEN',
-    'Verona': 'VER',
-    'Hellas Verona': 'VER'
-};
-
-function getTeamAbbr(sq) {
-    if (!sq) return '—';
-    return TEAM_ABBR[sq] || sq.substring(0, 3).toUpperCase();
-}
-
-function getPlayerVal(p) {
-    if (S.gn === 1) {
-        return +p.Costo || 0;
+    // Giocatori DB counts
+    const countsGio = { '': S.dbGiocatori.length, P: 0, D: 0, C: 0, A: 0 };
+    for (const item of S.dbGiocatori) {
+        if (countsGio[item.ruolo] !== undefined) countsGio[item.ruolo]++;
     }
-    const key = (p.Calciatore || '').replace(/\*/g, '').trim().toLowerCase();
-    return S.quotMap[key]?.qta ?? (+p.Costo || 0);
+
+    if ($('cnt-gio-all')) $('cnt-gio-all').textContent = `(${countsGio['']})`;
+    if ($('cnt-gio-p')) $('cnt-gio-p').textContent = `(${countsGio.P})`;
+    if ($('cnt-gio-d')) $('cnt-gio-d').textContent = `(${countsGio.D})`;
+    if ($('cnt-gio-c')) $('cnt-gio-c').textContent = `(${countsGio.C})`;
+    if ($('cnt-gio-a')) $('cnt-gio-a').textContent = `(${countsGio.A})`;
 }
 
-function rRose() {
-    const defs = ['P', 'D', 'C', 'A'];
+// ── Render Giocatori & Possesso ──────────────────────────────────────
+function rGiocatori() {
+    let list = [...S.dbGiocatori];
 
-    const html = S.standings.map(team => {
-        const pos = team.Posizione;
-        const name = team.Fantasquadra;
-        const pts = team.Punti;
-        const players = S.rose[name] || [];
-        const byRole = { P: [], D: [], C: [], A: [] };
-        let teamTotalVal = 0;
+    // Filtro Ruolo
+    if (S.fR_gio) {
+        list = list.filter(p => p.ruolo === S.fR_gio);
+    }
 
-        for (const p of players) {
-            byRole[p.Ruolo]?.push(p);
-            teamTotalVal += getPlayerVal(p);
+    // Filtro Stato Possesso
+    if (S.fS_gio === 'svincolato') {
+        list = list.filter(p => p.isSvincolato || p.owners.length === 0);
+    } else if (S.fS_gio === 'posseduto') {
+        list = list.filter(p => p.owners.length > 0);
+    } else if (S.fS_gio === 'multi') {
+        list = list.filter(p => p.owners.length > 1);
+    }
+
+    // Filtro Ricerca
+    if (S.fQ_gio) {
+        const q = S.fQ_gio;
+        list = list.filter(p =>
+            p.nome.toLowerCase().includes(q) ||
+            p.sq.toLowerCase().includes(q)
+        );
+    }
+
+    // Ordinamento
+    list.sort((a, b) => {
+        let av = a[S.sCol_gio], bv = b[S.sCol_gio];
+        if (S.sCol_gio === 'FVM') { av = a.fvm; bv = b.fvm; }
+        else if (S.sCol_gio === 'Quotazione') { av = a.quot; bv = b.quot; }
+        else if (S.sCol_gio === 'Nome') { av = a.nome; bv = b.nome; }
+        else if (S.sCol_gio === 'Ruolo') { av = a.ruolo; bv = b.ruolo; }
+
+        if (typeof av === 'number' && typeof bv === 'number') {
+            return S.sDir_gio === 'asc' ? av - bv : bv - av;
+        }
+        return S.sDir_gio === 'asc'
+            ? String(av).localeCompare(String(bv))
+            : String(bv).localeCompare(String(av));
+    });
+
+    if ($('cntGio')) $('cntGio').textContent = `${list.length} calciatori`;
+
+    const emptyEl = $('gioEmpty');
+    const tbody = document.querySelector('#tGiocatori tbody');
+    if (!tbody) return;
+
+    if (list.length === 0) {
+        if (emptyEl) emptyEl.style.display = 'block';
+        tbody.innerHTML = '';
+        return;
+    } else if (emptyEl) {
+        emptyEl.style.display = 'none';
+    }
+
+    tbody.innerHTML = list.map(p => {
+        let ownerHtml = '';
+        if (p.owners.length === 0) {
+            ownerHtml = `<span class="owner-tag svinc">🟢 Svincolato</span>`;
+        } else if (p.owners.length === 1) {
+            ownerHtml = `<span class="owner-tag single">🔴 ${p.owners[0]}</span>`;
+        } else {
+            ownerHtml = `<span class="owner-tag multi">🟣 <strong>${p.owners.length} squadre</strong>: ${p.owners.join(', ')}</span>`;
         }
 
-        const rolesHtml = defs.map(k => {
-            const list = [...(byRole[k] || [])];
-
-            // Ordina dal valore in cr più alto a quello più basso
-            list.sort((a, b) => getPlayerVal(b) - getPlayerVal(a));
-
-            const chips = list
-                .map(p => {
-                    const val = getPlayerVal(p);
-                    const qHtml = `<span class="ac-qt">${val} cr</span>`;
-                    return `<span class="ac-player">
-                        <span class="ac-pname">${p.Calciatore}</span>
-                        ${qHtml}
-                    </span>`;
-                })
-                .join('');
-
-            return `<div class="ac-role">
-                <div class="ac-role-header">
-                    <div class="ac-role-badge ${k.toLowerCase()}">${k}</div>
-                    <span class="ac-role-title">${ROLE_NAMES[k]} (${list.length})</span>
-                </div>
-                <div class="ac-players">${chips || '<span style="color:var(--tx3);font-size:12px;">Nessuno</span>'}</div>
-            </div>`;
-        }).join('');
-
-        const rankClass = pos === 1 ? 'rank-1' : pos === 2 ? 'rank-2' : pos === 3 ? 'rank-3' : '';
-        const teamValHtml = teamTotalVal > 0 ? `<div class="ac-val-tag" title="Valore totale rosa">${teamTotalVal} cr</div>` : '';
-
-        return `<div class="ac-item ${rankClass}">
-            <button class="ac-trigger" data-team="${name}">
-                <div class="ac-pos ${posC(pos)}">${pos}</div>
-                <div class="ac-name">${name}</div>
-                ${teamValHtml}
-                <div class="ac-pts">${pts} pt</div>
-                <span class="ac-arrow">⌄</span>
-            </button>
-            <div class="ac-body">
-                <div class="ac-inner">
-                    <div class="ac-roles">${rolesHtml}</div>
-                </div>
-            </div>
-        </div>`;
+        return `<tr>
+            <td><span class="rb rb-${(p.ruolo || '').toLowerCase()}">${p.ruolo || '?'}</span></td>
+            <td style="font-weight:600">${p.nome}</td>
+            <td class="hide-sm" style="color:var(--tx2)">${p.sq || '—'}</td>
+            <td class="n fvm-val">
+                <span class="hide-sm">${p.fvm || '—'}</span>
+                <span class="show-sm sq-badge">${getTeamAbbr(p.sq)}</span>
+            </td>
+            <td class="n"><span class="qt">${p.quot || '—'}</span></td>
+            <td>${ownerHtml}</td>
+        </tr>`;
     }).join('');
 
-    $('accordion').innerHTML = html;
+    // Update Header Sort Arrows
+    document.querySelectorAll('#tGiocatori th[data-sg]').forEach(th => {
+        th.classList.remove('sa', 'sd');
+        const col = th.dataset.sg;
+        const arrow = col === S.sCol_gio ? (S.sDir_gio === 'asc' ? '↑' : '↓') : '⇕';
+        if (col === S.sCol_gio && !(window.innerWidth <= 768 && col === 'FVM')) {
+            th.classList.add(S.sDir_gio === 'asc' ? 'sa' : 'sd');
+        }
 
-    // Toggle click logic
-    $('accordion').querySelectorAll('.ac-trigger').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const body = btn.nextElementSibling;
-            const isOpen = btn.classList.contains('open');
-
-            if (isOpen) {
-                btn.classList.remove('open');
-                body.classList.remove('open');
-            } else {
-                btn.classList.add('open');
-                body.classList.add('open');
-                setTimeout(() => btn.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 60);
-            }
-        });
+        if (col === 'FVM') {
+            th.innerHTML = `<span class="hide-sm">FVM ${arrow}</span><span class="show-sm">Sq.</span>`;
+        } else {
+            let label = (th.dataset.label || th.textContent).replace(/[ ⇕↑↓]/g, '');
+            th.dataset.label = label;
+            th.innerHTML = `${label} ${arrow}`;
+        }
     });
 }
 
@@ -295,18 +388,21 @@ function rSv() {
             : String(bv).localeCompare(String(av));
     });
 
-    $('cnt').textContent = `${d.length} calciatori`;
+    if ($('cnt')) $('cnt').textContent = `${d.length} calciatori`;
 
     const emptyEl = $('svEmpty');
+    const tbody = document.querySelector('#tSv tbody');
+    if (!tbody) return;
+
     if (d.length === 0) {
         if (emptyEl) emptyEl.style.display = 'block';
-        document.querySelector('#tSv tbody').innerHTML = '';
+        tbody.innerHTML = '';
         return;
     } else if (emptyEl) {
         emptyEl.style.display = 'none';
     }
 
-    document.querySelector('#tSv tbody').innerHTML = d.map(r => `<tr>
+    tbody.innerHTML = d.map(r => `<tr>
         <td><span class="rb rb-${r.Ruolo.toLowerCase()}">${r.Ruolo}</span></td>
         <td style="font-weight:600">${r.Nome}</td>
         <td class="hide-sm" style="color:var(--tx2)">${r.Squadra}</td>
@@ -359,7 +455,7 @@ function rMercato() {
         }
     }
 
-    // Ordina i cambi secondo la classifica attuale
+    // Ordina i cambi secondo la classifica generale
     const teamOrder = S.standings.map(t => t.Fantasquadra);
     const sortedCambi = [...S.cambi].sort((a, b) => {
         const ia = teamOrder.indexOf(a.Fantasquadra);
@@ -394,12 +490,12 @@ function rMercato() {
 
 // ── Render All ───────────────────────────────────────────────────────
 function render() {
-    rRose();
+    rGiocatori();
     rSv();
     rMercato();
 }
 
-// ── Global Search ───────────────────────────────────────────────────
+// ── Global Search Modal ──────────────────────────────────────────────
 function initGlobalSearch() {
     const modal = $('gsModal');
     const btn = $('btnGlobalSearch');
@@ -437,50 +533,11 @@ function initGlobalSearch() {
         const q = input.value.trim().toLowerCase();
         if (q.length < 2) { res.innerHTML = ''; return; }
 
-        let playerMap = {};
+        let matches = S.dbGiocatori.filter(p =>
+            p.nome.toLowerCase().includes(q) ||
+            p.sq.toLowerCase().includes(q)
+        );
 
-        // Helper per cercare o registrare calciatore
-        function getOrAdd(rawName, sq, ruolo) {
-            const cleanName = (rawName || '').replace(/\*/g, '').trim();
-            if (!cleanName) return null;
-            const key = cleanName.toLowerCase();
-            const qInfo = S.quotMap[key] || {};
-
-            if (!playerMap[key]) {
-                playerMap[key] = {
-                    nome: cleanName,
-                    sq: sq || qInfo.sq || '',
-                    ruolo: ruolo || qInfo.ruolo || '',
-                    owners: [],
-                    isSvincolato: false
-                };
-            }
-            return playerMap[key];
-        }
-
-        // Cerca in rose
-        for (const [fsq, giocatori] of Object.entries(S.rose)) {
-            for (const g of giocatori) {
-                const pName = g.Calciatore || g.Nome || '';
-                if (pName.toLowerCase().includes(q)) {
-                    const item = getOrAdd(pName, g.Squadra, g.Ruolo);
-                    if (item && !item.owners.includes(fsq)) {
-                        item.owners.push(fsq);
-                    }
-                }
-            }
-        }
-
-        // Cerca in svincolati
-        for (const sv of S.sv) {
-            const pName = sv.Nome || sv.Calciatore || '';
-            if (pName.toLowerCase().includes(q)) {
-                const item = getOrAdd(pName, sv.Squadra, sv.Ruolo);
-                if (item) item.isSvincolato = true;
-            }
-        }
-
-        let matches = Object.values(playerMap);
         matches.sort((a, b) => a.nome.localeCompare(b.nome));
 
         if (matches.length === 0) {
@@ -493,11 +550,10 @@ function initGlobalSearch() {
             const rBg = { P: 'rgba(251,191,36,0.15)', D: 'rgba(74,222,128,0.15)', C: 'rgba(56,189,248,0.15)', A: 'rgba(248,113,113,0.15)' }[m.ruolo] || 'rgba(255,255,255,0.1)';
             
             let badges = '';
-            if (m.isSvincolato && m.owners.length === 0) {
+            if (m.owners.length === 0) {
                 badges = `<span class="gs-owner svinc">Svincolato</span>`;
             } else {
                 badges = m.owners.map(o => `<span class="gs-owner rosa">${o}</span>`).join('');
-                if (m.isSvincolato) badges += `<span class="gs-owner svinc">Svincolato</span>`;
             }
 
             const sqStr = m.sq ? `(${m.sq})` : '';
@@ -521,6 +577,7 @@ function initGlobalSearch() {
 // ── Events Setup ─────────────────────────────────────────────────────
 function setup() {
     initGlobalSearch();
+
     // Tabs Navigation
     document.querySelectorAll('.t').forEach(b =>
         b.addEventListener('click', () => {
@@ -531,17 +588,6 @@ function setup() {
             closePicker();
         })
     );
-
-    // Expand / Collapse all rose
-    $('btnExpandAll')?.addEventListener('click', () => {
-        $('accordion').querySelectorAll('.ac-trigger').forEach(b => b.classList.add('open'));
-        $('accordion').querySelectorAll('.ac-body').forEach(b => b.classList.add('open'));
-    });
-
-    $('btnCollapseAll')?.addEventListener('click', () => {
-        $('accordion').querySelectorAll('.ac-trigger').forEach(b => b.classList.remove('open'));
-        $('accordion').querySelectorAll('.ac-body').forEach(b => b.classList.remove('open'));
-    });
 
     // Giornata Navigator
     $('gnPrev').addEventListener('click', () => {
@@ -558,35 +604,91 @@ function setup() {
     });
     document.addEventListener('click', () => { if (pickerOpen) closePicker(); });
 
+    // Database Giocatori — Ricerca
+    const qGioInput = $('qGio');
+    const clearGioBtn = $('searchClearGio');
+
+    if (qGioInput) {
+        qGioInput.addEventListener('input', e => {
+            S.fQ_gio = e.target.value.toLowerCase().trim();
+            if (clearGioBtn) clearGioBtn.style.display = S.fQ_gio ? 'block' : 'none';
+            rGiocatori();
+        });
+    }
+
+    if (clearGioBtn) {
+        clearGioBtn.addEventListener('click', () => {
+            if (qGioInput) qGioInput.value = '';
+            S.fQ_gio = '';
+            clearGioBtn.style.display = 'none';
+            rGiocatori();
+            if (qGioInput) qGioInput.focus();
+        });
+    }
+
+    // Database Giocatori — Pills filtro ruolo
+    document.querySelectorAll('.pill-gio-r').forEach(p =>
+        p.addEventListener('click', () => {
+            document.querySelectorAll('.pill-gio-r').forEach(x => x.classList.remove('on'));
+            p.classList.add('on');
+            S.fR_gio = p.dataset.r;
+            rGiocatori();
+        })
+    );
+
+    // Database Giocatori — Pills filtro stato possesso
+    document.querySelectorAll('.pill-gio-s').forEach(p =>
+        p.addEventListener('click', () => {
+            document.querySelectorAll('.pill-gio-s').forEach(x => x.classList.remove('on'));
+            p.classList.add('on');
+            S.fS_gio = p.dataset.st;
+            rGiocatori();
+        })
+    );
+
+    // Database Giocatori — Sort colonne
+    document.querySelectorAll('#tGiocatori th[data-sg]').forEach(th =>
+        th.addEventListener('click', () => {
+            if (window.innerWidth <= 768 && th.dataset.sg === 'FVM') return;
+            const c = th.dataset.sg;
+            S.sDir_gio = (S.sCol_gio === c && S.sDir_gio === 'desc') ? 'asc' : 'desc';
+            S.sCol_gio = c;
+            rGiocatori();
+        })
+    );
+
     // Svincolati — Ricerca
     const searchInput = $('q');
     const clearBtn = $('searchClear');
 
-    searchInput.addEventListener('input', e => {
-        S.fQ = e.target.value.toLowerCase().trim();
-        if (clearBtn) clearBtn.style.display = S.fQ ? 'block' : 'none';
-        rSv();
-    });
+    if (searchInput) {
+        searchInput.addEventListener('input', e => {
+            S.fQ = e.target.value.toLowerCase().trim();
+            if (clearBtn) clearBtn.style.display = S.fQ ? 'block' : 'none';
+            rSv();
+        });
+    }
 
     if (clearBtn) {
         clearBtn.addEventListener('click', () => {
-            searchInput.value = '';
+            if (searchInput) searchInput.value = '';
             S.fQ = '';
             clearBtn.style.display = 'none';
             rSv();
-            searchInput.focus();
+            if (searchInput) searchInput.focus();
         });
     }
 
     // Svincolati — Pills filtro ruolo
-    document.querySelectorAll('.pill').forEach(p =>
+    document.querySelectorAll('.pill').forEach(p => {
+        if (p.classList.contains('pill-gio-r') || p.classList.contains('pill-gio-s')) return;
         p.addEventListener('click', () => {
-            document.querySelectorAll('.pill').forEach(x => x.classList.remove('on'));
+            document.querySelectorAll('.pill:not(.pill-gio-r):not(.pill-gio-s)').forEach(x => x.classList.remove('on'));
             p.classList.add('on');
             S.fR = p.dataset.r;
             rSv();
-        })
-    );
+        });
+    });
 
     // Svincolati — Sort colonne
     document.querySelectorAll('#tSv th[data-s]').forEach(th =>

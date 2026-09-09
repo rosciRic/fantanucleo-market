@@ -18,8 +18,8 @@
     </div>
 
     <nav class="tabs">
-        <button class="t active" data-v="rose">
-            <span class="tab-icon">👥</span> Rose
+        <button class="t active" data-v="giocatori">
+            <span class="tab-icon">🔍</span> Giocatori
         </button>
         <button class="t" data-v="svincolati">
             <span class="tab-icon">📋</span> Svincolati
@@ -47,15 +47,52 @@
 
 <main>
 
-    <!-- ROSE -->
-    <section class="v on" id="v-rose">
-        <div class="rose-toolbar">
-            <div class="ac-actions">
-                <button id="btnExpandAll" class="btn-subtle">Espandi tutte</button>
-                <button id="btnCollapseAll" class="btn-subtle">Chiudi tutte</button>
+    <!-- GIOCATORI & POSSESSO -->
+    <section class="v on" id="v-giocatori">
+        <div class="sv-bar gio-bar">
+            <div class="search-wrap">
+                <span class="search-icon">🔍</span>
+                <input id="qGio" type="search" class="search" placeholder="Cerca calciatore o squadra Serie A…">
+                <button id="searchClearGio" class="search-clear" title="Cancella ricerca">✕</button>
+            </div>
+
+            <div class="pills">
+                <button class="pill-gio-r pill on" data-r="">Tutti <span class="pill-cnt" id="cnt-gio-all"></span></button>
+                <button class="pill-gio-r pill pp" data-r="P">P <span class="pill-cnt" id="cnt-gio-p"></span></button>
+                <button class="pill-gio-r pill pd" data-r="D">D <span class="pill-cnt" id="cnt-gio-d"></span></button>
+                <button class="pill-gio-r pill pc" data-r="C">C <span class="pill-cnt" id="cnt-gio-c"></span></button>
+                <button class="pill-gio-r pill pa" data-r="A">A <span class="pill-cnt" id="cnt-gio-a"></span></button>
+            </div>
+
+            <div class="pills status-pills">
+                <button class="pill-gio-s pill on" data-st="">Tutti</button>
+                <button class="pill-gio-s pill st-svinc" data-st="svincolato">Svincolati</button>
+                <button class="pill-gio-s pill st-poss" data-st="posseduto">Posseduti</button>
+                <button class="pill-gio-s pill st-multi" data-st="multi">2+ Squadre</button>
+            </div>
+
+            <span class="cnt" id="cntGio"></span>
+        </div>
+
+        <div class="box full-box">
+            <div class="scroll">
+                <table id="tGiocatori">
+                    <thead><tr>
+                        <th>R</th>
+                        <th>Nome</th>
+                        <th class="hide-sm">Squadra</th>
+                        <th class="n" data-sg="FVM"><span class="hide-sm">FVM ⇕</span><span class="show-sm">Sq.</span></th>
+                        <th class="n" data-sg="Quotazione">Quot (cr) ⇕</th>
+                        <th>Stato / Squadre Posseditrici</th>
+                    </tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div id="gioEmpty" class="empty-state" style="display:none;">
+                <span>🔎</span>
+                <p>Nessun calciatore trovato con i filtri correnti</p>
             </div>
         </div>
-        <div class="accordion" id="accordion"></div>
     </section>
 
     <!-- SVINCOLATI -->
