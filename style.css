@@ -182,6 +182,16 @@ body {
     background: rgba(255, 255, 255, 0.06);
     color: var(--accent);
 }
+.gn-arrow {
+    font-size: 10px;
+    margin-left: 2px;
+    opacity: 0.7;
+    transition: transform 0.15s ease;
+}
+.gn-label:hover .gn-arrow {
+    opacity: 1;
+    transform: translateY(1px);
+}
 
 /* Header Right Actions */
 .bar-right {
@@ -227,7 +237,6 @@ body {
     color: var(--tx3);
     margin-left: 4px;
 }
-
 
 /* Giornata Popover Picker */
 .picker {
@@ -275,6 +284,9 @@ body {
     border-color: var(--accent);
     box-shadow: 0 2px 8px var(--accent-glow);
 }
+
+
+
 
 /* ── MAIN CONTENT CONTAINER (FULL RESPONSIVE WIDTH) ── */
 main {
@@ -563,9 +575,16 @@ main {
 }
 
 .search-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 460px;
+    width: 100%;
+}
+.search-input-box {
     position: relative;
     flex: 1;
-    min-width: 240px;
+    min-width: 200px;
 }
 .search-icon {
     position: absolute;
@@ -582,7 +601,7 @@ main {
     border: 1px solid var(--line);
     color: var(--tx);
     font: 14px 'Inter', sans-serif;
-    padding: 10px 34px 10px 34px;
+    padding: 9px 34px 9px 34px;
     border-radius: 8px;
     outline: none;
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -1187,6 +1206,61 @@ tbody tr:hover td {
     margin-right: 2px;
 }
 
+.cnt-badge {
+    font-size: 12px;
+    font-weight: 700;
+    color: #818cf8;
+    background: rgba(99, 102, 241, 0.15);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    padding: 6px 12px;
+    border-radius: 8px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    display: inline-flex;
+    align-items: center;
+    height: 38px;
+    flex-shrink: 0;
+}
+
+.btn-reset-filters {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    font: 600 12px 'Inter', sans-serif;
+    padding: 4px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.btn-reset-filters:hover {
+    background: rgba(239, 68, 68, 0.25);
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
+.mobile-sort-wrap {
+    display: none;
+    align-items: center;
+    gap: 6px;
+}
+@media (max-width: 640px) {
+    .mobile-sort-wrap {
+        display: flex;
+    }
+}
+.sort-select-mobile {
+    background: rgba(15, 23, 42, 0.9);
+    color: var(--tx);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 4px 8px;
+    font: 600 12px 'Inter', sans-serif;
+    cursor: pointer;
+}
+
 /* ── GIOCATORI DATABASE & POSSESSO ── */
 .gio-bar {
     display: flex;
@@ -1218,7 +1292,45 @@ tbody tr:hover td {
     border-color: rgba(168, 85, 247, 0.4);
 }
 
-/* ── COMPONENTE POSSESSO (3 STATI) ── */
+/* ── COMPONENTE POSSESSO & VALORI TABELLA ── */
+.pname-text {
+    font-weight: 600;
+    color: var(--tx);
+    font-size: 14px;
+}
+
+.sq-text {
+    font-size: 13px;
+    color: var(--tx2);
+    font-weight: 500;
+}
+
+.qt-badge {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+    font-weight: 800;
+    font-size: 13px;
+    color: #4ade80;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-variant-numeric: tabular-nums;
+}
+.qt-unit {
+    font-size: 10px;
+    font-weight: 700;
+    color: #a7f3d0;
+    opacity: 0.85;
+}
+
+.fsq-name {
+    font-weight: 700;
+    color: var(--tx);
+    font-size: 14px;
+}
+
 .pos-status {
     display: inline-flex;
     align-items: center;
@@ -1230,7 +1342,15 @@ tbody tr:hover td {
 /* Stato 1: Svincolato */
 .pos-status.free {
     color: #4ade80;
-    font-weight: 600;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+}
+.pos-dot {
+    font-size: 8px;
 }
 
 /* Stato 2: 1 Squadra */
@@ -1251,17 +1371,27 @@ tbody tr:hover td {
     border: 1px solid rgba(168, 85, 247, 0.35);
     font-size: 10px;
     font-weight: 800;
-    padding: 1px 5px;
-    border-radius: 4px;
+    padding: 2px 6px;
+    border-radius: 5px;
     font-variant-numeric: tabular-nums;
     flex-shrink: 0;
 }
 
-.pos-teams {
-    color: #e9d5ff;
+.pos-more {
+    color: #c084fc;
+    font-weight: 700;
+    font-size: 11px;
+}
+
+.pos-team {
+    color: #e2e8f0;
     font-weight: 500;
 }
 
+/* Column Widths & Alignments */
+th.col-role, td.col-role { width: 52px; text-align: center; }
+th.col-quot, td.col-quot { width: 110px; text-align: right; }
+th.col-possesso, td.col-possesso { min-width: 140px; }
 
 /* ── TABULAR NUMBERS ── */
 td.n, th.n, .qt, .cnt, .ac-qt {
@@ -1273,6 +1403,97 @@ tr[data-role="P"] { border-left: 3px solid #eab308 !important; }
 tr[data-role="D"] { border-left: 3px solid #3b82f6 !important; }
 tr[data-role="C"] { border-left: 3px solid #10b981 !important; }
 tr[data-role="A"] { border-left: 3px solid #ef4444 !important; }
+
+/* ── INTERACTIVE ROWS & INLINE ACCORDION ── */
+tbody tr.player-row[data-player-name] {
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+tbody tr.player-row[data-player-name]:hover {
+    background: rgba(99, 102, 241, 0.08) !important;
+}
+tbody tr.player-row.active-expanded {
+    background: rgba(99, 102, 241, 0.12) !important;
+}
+
+tr.expand-row > td {
+    padding: 0 !important;
+    border-bottom: 1px solid var(--line);
+    background: rgba(15, 23, 42, 0.7);
+}
+
+.inline-player-detail {
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    animation: fadeIn 0.18s ease-out;
+}
+
+.pm-info-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+}
+
+.pm-stat {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.pm-stat-lbl {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--tx3);
+    font-weight: 600;
+}
+
+.pm-stat-val {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--tx);
+}
+
+.pm-owners-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.pm-owners-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.pm-owner-chip {
+    background: rgba(168, 85, 247, 0.12);
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    color: #e9d5ff;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pm-free-tag {
+    color: #10b981;
+    font-size: 13px;
+    font-weight: 600;
+    background: rgba(16, 185, 129, 0.1);
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
 
 /* ── MOBILE CARD LAYOUT (< 640px) ── */
 @media (max-width: 640px) {
@@ -1304,7 +1525,7 @@ tr[data-role="A"] { border-left: 3px solid #ef4444 !important; }
         flex-direction: column;
         gap: 8px;
     }
-    #tGiocatori tbody tr {
+    #tGiocatori tbody tr.player-row {
         display: grid;
         grid-template-columns: auto 1fr auto;
         grid-template-areas:
@@ -1321,34 +1542,25 @@ tr[data-role="A"] { border-left: 3px solid #ef4444 !important; }
     #tGiocatori td:nth-child(4) { grid-area: quot; text-align: right; border: none; padding: 0; }
     #tGiocatori td:nth-child(5) { grid-area: possesso; text-align: right; border: none; padding: 0; }
 
-    /* 2. Tab Svincolati Cards */
-    #tSv table, #tSv thead {
-        display: none;
-    }
-    #tSv tbody {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-    #tSv tbody tr {
-        display: grid;
-        grid-template-columns: auto 1fr auto;
-        grid-template-areas:
-            "role nome quot"
-            "role nome fvm";
-        padding: 10px 12px;
-        border-radius: 10px;
-        background: var(--card);
+    #tGiocatori tbody tr.expand-row {
+        display: block;
+        padding: 0;
         border: 1px solid var(--line);
-        align-items: center;
+        border-radius: 10px;
+        background: rgba(15, 23, 42, 0.9);
+        margin-top: -4px;
     }
-    #tSv td:nth-child(1) { grid-area: role; align-self: flex-start; margin-top: 2px; border: none; padding: 0 6px 0 0; }
-    #tSv td:nth-child(2) { grid-area: nome; border: none; padding: 0 6px; }
-    #tSv td:nth-child(3), #tSv td:nth-child(5), #tSv td:nth-child(6), #tSv td:nth-child(7) { display: none; }
-    #tSv td:nth-child(4) { grid-area: fvm; text-align: right; border: none; padding: 0; }
-    #tSv td:nth-child(8) { grid-area: quot; text-align: right; border: none; padding: 0; }
+    #tGiocatori tbody tr.expand-row > td {
+        display: block;
+        width: 100%;
+        border: none;
+    }
 
-    /* 3. Tab Crediti & Cambi Cards */
+    .pm-info-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* 2. Tab Crediti & Cambi Cards */
     #tCambi table, #tCambi thead {
         display: none;
     }
@@ -1394,228 +1606,6 @@ tr[data-role="A"] { border-left: 3px solid #ef4444 !important; }
         flex: 1;
         height: 8px;
     }
-}
-
-/* ── SVINCOLATI MINI TAGS & METRICS ── */
-.sv-name-wrap {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-.sv-pname {
-    font-weight: 600;
-    font-size: 14px;
-    color: var(--tx);
-}
-.sv-mobile-stats {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 4px;
-}
-.sv-mini-tag {
-    font-size: 10px;
-    font-weight: 700;
-    padding: 1px 6px;
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: var(--tx2);
-    font-variant-numeric: tabular-nums;
-}
-.sv-mini-tag.fm {
-    color: #38bdf8;
-    background: rgba(56, 189, 248, 0.1);
-    border-color: rgba(56, 189, 248, 0.2);
-}
-.sv-mini-tag.mv {
-    color: #a7f3d0;
-    background: rgba(16, 185, 129, 0.1);
-    border-color: rgba(16, 185, 129, 0.2);
-}
-.sv-mini-tag.pg {
-    color: #fef08a;
-    background: rgba(234, 179, 8, 0.1);
-    border-color: rgba(234, 179, 8, 0.2);
-}
-.fvm-badge {
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 700;
-    color: #c084fc;
-    background: rgba(168, 85, 247, 0.12);
-    border: 1px solid rgba(168, 85, 247, 0.25);
-    padding: 2px 6px;
-    border-radius: 5px;
-    font-variant-numeric: tabular-nums;
-}
-
-/* ── INTERACTIVE ROWS ── */
-tbody tr[data-player-name] {
-    cursor: pointer;
-}
-tbody tr[data-player-name]:hover {
-    background: rgba(168, 85, 247, 0.06) !important;
-}
-
-/* ── MODAL DETTAGLIO CALCIATORE ── */
-.player-modal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 1000;
-    background: rgba(0, 0, 0, 0.75);
-    backdrop-filter: blur(8px);
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
-
-.player-modal.show {
-    display: flex;
-    opacity: 1;
-}
-
-.player-modal-content {
-    background: #12141c;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(168, 85, 247, 0.15);
-    border-radius: 16px;
-    width: 100%;
-    max-width: 440px;
-    padding: 20px;
-    transform: scale(0.95);
-    transition: transform 0.2s ease;
-}
-
-.player-modal.show .player-modal-content {
-    transform: scale(1);
-}
-
-.pm-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-bottom: 14px;
-    border-bottom: 1px solid var(--line);
-}
-
-.pm-title-wrap {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.pm-nome {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--tx);
-}
-
-.pm-sq {
-    font-size: 13px;
-    color: var(--tx2);
-    font-weight: 500;
-}
-
-.pm-close {
-    background: transparent;
-    border: none;
-    color: var(--tx2);
-    font-size: 24px;
-    line-height: 1;
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 6px;
-    transition: color 0.15s ease, background 0.15s ease;
-}
-
-.pm-close:hover {
-    color: var(--tx);
-    background: rgba(255, 255, 255, 0.08);
-}
-
-.pm-body {
-    margin-top: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.pm-info-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-}
-
-.pm-stat {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    border-radius: 10px;
-    padding: 10px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.pm-stat-lbl {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--tx3);
-    font-weight: 600;
-}
-
-.pm-stat-val {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--tx);
-}
-
-.pm-owners-section {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.pm-section-lbl {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--tx2);
-}
-
-.pm-owners-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    max-height: 180px;
-    overflow-y: auto;
-    padding-right: 4px;
-}
-
-.pm-owner-chip {
-    background: rgba(168, 85, 247, 0.12);
-    border: 1px solid rgba(168, 85, 247, 0.3);
-    color: #e9d5ff;
-    font-size: 13px;
-    font-weight: 600;
-    padding: 6px 12px;
-    border-radius: 8px;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.pm-free-tag {
-    color: #10b981;
-    font-size: 13px;
-    font-weight: 600;
-    background: rgba(16, 185, 129, 0.1);
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
 

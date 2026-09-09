@@ -10,22 +10,13 @@ const S = {
     quotMap: {},     // { nome_calciatore: { qta, qti, diff } }
     dbGiocatori: [], // listone unificato calciatori con possesso
 
-    // Filtri Svincolati
-    fR: '',
-    fQ: '',
-    sCol: 'Quotazione',
-    sDir: 'desc',
-
     // Filtri Database Giocatori
     fR_gio: '',
     fS_gio: '',
     fQ_gio: '',
-    sCol_gio: 'Quotazione',
-    sDir_gio: 'desc',
 
-    // Filtri Mercato / Crediti & Cambi
-    sCol_mer: 'CambiRimasti',
-    sDir_mer: 'desc'
+    // Stato riga espansa (Accordion inline)
+    expandedPlayerName: null
 };
 
 const ROLE_ORDER = { P: 1, D: 2, C: 3, A: 4 };
@@ -48,51 +39,72 @@ function debounce(fn, delay = 120) {
 function renderPossesso(owners = []) {
     const count = owners.length;
     if (count === 0) {
-        return `<span class="pos-status free">Svincolato</span>`;
+        return `<span class="pos-status free"><span class="pos-dot">🟢</span> Libero</span>`;
     }
     if (count === 1) {
         return `<span class="pos-status single"><span class="pos-badge">1x</span><span class="pos-team hide-sm">${owners[0]}</span></span>`;
     }
-    return `<span class="pos-status multi"><span class="pos-badge">${count}x</span><span class="pos-team hide-sm">${owners[0]} +${count - 1}</span></span>`;
+    return `<span class="pos-status multi"><span class="pos-badge">${count}x</span><span class="pos-team hide-sm">${owners[0]} <span class="pos-more">+${count - 1}</span></span></span>`;
 }
 
-// ── MODAL DETTAGLIO CALCIATORE ──
-function openPlayerModal(p) {
-    const modal = $('playerModal');
-    if (!modal || !p) return;
-
-    $('pmRuolo').textContent = p.ruolo || '?';
-    $('pmRuolo').className = `rb rb-${(p.ruolo || '').toLowerCase()}`;
-    $('pmNome').textContent = p.nome;
-    $('pmSq').textContent = p.sq ? `(${p.sq})` : '';
-
+// ── RENDER ACCORDION DETTAGLIO CALCIATORE INLINE ──
+function renderExpandedRow(p) {
     const count = p.owners ? p.owners.length : 0;
     const isFree = count === 0;
-    const infoGrid = $('pmInfoGrid');
 
     if (isFree) {
-        // PER GLI SVINCOLATI: mostra la griglia con tutte le statistiche
-        if (infoGrid) infoGrid.style.display = 'grid';
-        $('pmQuot').textContent = `${p.quot || 0} cr`;
-        if ($('pmFVM')) $('pmFVM').textContent = p.fvm || '—';
-        if ($('pmFM')) $('pmFM').textContent = p.fm || '—';
-        if ($('pmMV')) $('pmMV').textContent = p.mv || '—';
-        if ($('pmPG')) $('pmPG').textContent = p.pg !== undefined ? p.pg : '—';
-        if ($('pmCount')) $('pmCount').textContent = 'Svincolato';
-        $('pmOwnersList').innerHTML = `<span class="pm-free-tag">🟢 Calciatore libero sul mercato</span>`;
+        // PER GLI SVINCOLATI: mostra la griglia con tutte le statistiche ed il tag libero
+        return `<tr class="expand-row">
+            <td colspan="5">
+                <div class="inline-player-detail">
+                    <div class="pm-info-grid">
+                        <div class="pm-stat">
+                            <span class="pm-stat-lbl">Quotazione</span>
+                            <span class="pm-stat-val">${p.quot || 0} cr</span>
+                        </div>
+                        <div class="pm-stat">
+                            <span class="pm-stat-lbl">FVM</span>
+                            <span class="pm-stat-val">${p.fvm || '—'}</span>
+                        </div>
+                        <div class="pm-stat">
+                            <span class="pm-stat-lbl">Fantamedia</span>
+                            <span class="pm-stat-val">${p.fm || '—'}</span>
+                        </div>
+                        <div class="pm-stat">
+                            <span class="pm-stat-lbl">Media Voto</span>
+                            <span class="pm-stat-val">${p.mv || '—'}</span>
+                        </div>
+                        <div class="pm-stat">
+                            <span class="pm-stat-lbl">Partite (PG)</span>
+                            <span class="pm-stat-val">${p.pg !== undefined && p.pg !== null ? p.pg : '—'}</span>
+                        </div>
+                        <div class="pm-stat">
+                            <span class="pm-stat-lbl">Stato</span>
+                            <span class="pm-stat-val">Svincolato</span>
+                        </div>
+                    </div>
+                    <div class="pm-owners-section">
+                        <div class="pm-owners-list">
+                            <span class="pm-free-tag">🟢 Calciatore libero sul mercato</span>
+                        </div>
+                    </div>
+                </div>
+            </td>
+        </tr>`;
     } else {
-        // PER I POSSEDUTI: nascondi la griglia statistiche, mostra SOLTANTO l'elenco squadre
-        if (infoGrid) infoGrid.style.display = 'none';
-        $('pmOwnersList').innerHTML = p.owners.map(team =>
-            `<div class="pm-owner-chip">⚽ ${team}</div>`
-        ).join('');
+        // PER I POSSEDUTI: mostra SOLTANTO l'elenco delle squadre possessori
+        const ownersHtml = p.owners.map(team => `<div class="pm-owner-chip">⚽ ${team}</div>`).join('');
+        return `<tr class="expand-row">
+            <td colspan="5">
+                <div class="inline-player-detail">
+                    <div class="pm-owners-section">
+                        <span class="pm-section-lbl">Posseduto da ${count} ${count === 1 ? 'squadra' : 'squadre'}:</span>
+                        <div class="pm-owners-list">${ownersHtml}</div>
+                    </div>
+                </div>
+            </td>
+        </tr>`;
     }
-
-    modal.classList.add('show');
-}
-
-function closePlayerModal() {
-    $('playerModal')?.classList.remove('show');
 }
 
 // ── CSV Parser ───────────────────────────────────────────────────────
@@ -294,11 +306,17 @@ async function load(n) {
     render();
 }
 
-// ── Giornata Navigator ───────────────────────────────────────────────
+// ── Giornata Navigator & Picker ──────────────────────────────────────
 function updateNav() {
-    $('gnLabel').textContent = `G${S.gn}`;
-    $('gnPrev').disabled = S.gn <= S.giornate[0];
-    $('gnNext').disabled = S.gn >= S.giornate[S.giornate.length - 1];
+    const label = $('gnLabel');
+    if (label) label.innerHTML = `G${S.gn} <span class="gn-arrow">▾</span>`;
+
+    const prevBtn = $('gnPrev');
+    if (prevBtn) prevBtn.disabled = S.gn <= S.giornate[0];
+
+    const nextBtn = $('gnNext');
+    if (nextBtn) nextBtn.disabled = S.gn >= S.giornate[S.giornate.length - 1];
+
     document.querySelectorAll('.pk-btn').forEach(b =>
         b.classList.toggle('cur', +b.dataset.n === S.gn)
     );
@@ -306,6 +324,7 @@ function updateNav() {
 
 function buildPicker() {
     const el = $('picker');
+    if (!el) return;
     el.innerHTML = S.giornate.map(n =>
         `<button class="pk-btn" data-n="${n}">G${n}</button>`
     ).join('');
@@ -317,6 +336,7 @@ function buildPicker() {
 let pickerOpen = false;
 function openPicker(anchor) {
     const el = $('picker');
+    if (!el) return;
     const r = anchor.getBoundingClientRect();
     el.style.top = (r.bottom + 8) + 'px';
     el.style.left = Math.max(10, Math.min(window.innerWidth - 250, r.left - 80)) + 'px';
@@ -324,25 +344,13 @@ function openPicker(anchor) {
     pickerOpen = true;
 }
 function closePicker() {
-    $('picker').classList.remove('show');
+    const el = $('picker');
+    if (el) el.classList.remove('show');
     pickerOpen = false;
 }
 
 // ── Count badges update ──────────────────────────────────────────────
 function updateCounts() {
-    // Svincolati counts
-    const countsSv = { '': S.sv.length, P: 0, D: 0, C: 0, A: 0 };
-    for (const item of S.sv) {
-        if (countsSv[item.Ruolo] !== undefined) countsSv[item.Ruolo]++;
-    }
-
-    if ($('cnt-all')) $('cnt-all').textContent = `(${countsSv['']})`;
-    if ($('cnt-p')) $('cnt-p').textContent = `(${countsSv.P})`;
-    if ($('cnt-d')) $('cnt-d').textContent = `(${countsSv.D})`;
-    if ($('cnt-c')) $('cnt-c').textContent = `(${countsSv.C})`;
-    if ($('cnt-a')) $('cnt-a').textContent = `(${countsSv.A})`;
-
-    // Giocatori DB counts
     const countsGio = { '': S.dbGiocatori.length, P: 0, D: 0, C: 0, A: 0 };
     for (const item of S.dbGiocatori) {
         if (countsGio[item.ruolo] !== undefined) countsGio[item.ruolo]++;
@@ -380,44 +388,15 @@ function rGiocatori() {
         );
     }
 
-    // Ordinamento principale
+    // Ordinamento fisso di default: Ruolo (P → D → C → A), poi Quotazione (decrescente), poi Nome (A-Z)
     list.sort((a, b) => {
-        if (S.sCol_gio === 'Nome') {
-            const res = a.nome.localeCompare(b.nome);
-            return S.sDir_gio === 'asc' ? res : -res;
-        }
-
-        if (S.sCol_gio === 'Quotazione') {
-            const qa = a.quot || 0;
-            const qb = b.quot || 0;
-            if (qa !== qb) {
-                return S.sDir_gio === 'asc' ? qa - qb : qb - qa;
-            }
-        }
-
-        if (S.sCol_gio === 'owners') {
-            const oa = a.owners.length;
-            const ob = b.owners.length;
-            if (oa !== ob) {
-                return S.sDir_gio === 'asc' ? oa - ob : ob - oa; // decrescente (più posseduti in alto)
-            }
-            // A parità di possessori: ordina per Quotazione decrescente
-            return (b.quot || 0) - (a.quot || 0);
-        }
-
-        // Gruppo Ruolo P -> D -> C -> A
         const ra = ROLE_ORDER[a.ruolo] || 99;
         const rb = ROLE_ORDER[b.ruolo] || 99;
-        if (ra !== rb) {
-            return S.sDir_gio === 'asc' ? ra - rb : rb - ra;
-        }
+        if (ra !== rb) return ra - rb;
 
-        // Dentro lo stesso ruolo: Crediti SEMPRE DECRESCENTI (dal più alto al più basso)
         const qa = a.quot || 0;
         const qb = b.quot || 0;
-        if (qa !== qb) {
-            return qb - qa;
-        }
+        if (qa !== qb) return qb - qa;
 
         return a.nome.localeCompare(b.nome);
     });
@@ -436,131 +415,44 @@ function rGiocatori() {
         emptyEl.style.display = 'none';
     }
 
-    tbody.innerHTML = list.map(p => {
+    let html = '';
+    for (const p of list) {
+        const isExpanded = S.expandedPlayerName === p.nome;
         const ownerHtml = renderPossesso(p.owners);
+        const rowClass = isExpanded ? 'player-row active-expanded' : 'player-row';
+        const quotVal = p.quot || 0;
+        const sqText = p.sq ? p.sq : '—';
 
-        return `<tr data-role="${p.ruolo}" data-player-name="${p.nome}">
-            <td><span class="rb rb-${(p.ruolo || '').toLowerCase()}">${p.ruolo || '?'}</span></td>
-            <td style="font-weight:600">${p.nome}</td>
-            <td style="color:var(--tx2)">
-                <span class="hide-sm">${p.sq || '—'}</span>
+        html += `<tr class="${rowClass}" data-role="${p.ruolo}" data-player-name="${p.nome}">
+            <td class="col-role"><span class="rb rb-${(p.ruolo || '').toLowerCase()}">${p.ruolo || '?'}</span></td>
+            <td class="col-nome"><span class="pname-text">${p.nome}</span></td>
+            <td class="col-squadra">
+                <span class="hide-sm sq-text">${sqText}</span>
                 <span class="show-sm sq-badge">${getTeamAbbr(p.sq)}</span>
             </td>
-            <td class="n"><span class="qt">${p.quot || '—'}</span></td>
-            <td>${ownerHtml}</td>
+            <td class="n col-quot"><span class="qt-badge">${quotVal} <small class="qt-unit">cr</small></span></td>
+            <td class="col-possesso">${ownerHtml}</td>
         </tr>`;
-    }).join('');
 
-    // Wire Click on rows to open Player Detail Modal
-    tbody.querySelectorAll('tr[data-player-name]').forEach(tr => {
-        tr.addEventListener('click', () => {
+        if (isExpanded) {
+            html += renderExpandedRow(p);
+        }
+    }
+
+    tbody.innerHTML = html;
+
+    // Wire Click sulle righe per espandere/comprimere accordion inline
+    tbody.querySelectorAll('tr.player-row[data-player-name]').forEach(tr => {
+        tr.addEventListener('click', (e) => {
+            e.stopPropagation();
             const pName = tr.dataset.playerName;
-            const p = S.dbGiocatori.find(x => x.nome === pName);
-            if (p) openPlayerModal(p);
+            S.expandedPlayerName = (S.expandedPlayerName === pName) ? null : pName;
+            rGiocatori();
         });
     });
 
-    // Update Header Sort Arrows
-    document.querySelectorAll('#tGiocatori th[data-sg]').forEach(th => {
-        th.classList.remove('sa', 'sd');
-        const col = th.dataset.sg;
-        const arrow = col === S.sCol_gio ? (S.sDir_gio === 'asc' ? '↑' : '↓') : '⇕';
-        if (col === S.sCol_gio) {
-            th.classList.add(S.sDir_gio === 'asc' ? 'sa' : 'sd');
-        }
-
-        let label = (th.dataset.label || th.textContent).replace(/[ ⇕↑↓]/g, '');
-        th.dataset.label = label;
-        th.innerHTML = `${label} ${arrow}`;
-    });
-}
-
-// ── Render Svincolati ────────────────────────────────────────────────
-function rSv() {
-    let d = [...S.sv];
-
-    if (S.fR) d = d.filter(r => r.Ruolo === S.fR);
-
-    if (S.fQ) {
-        const q = S.fQ;
-        d = d.filter(r =>
-            r.Nome.toLowerCase().includes(q) ||
-            r.Squadra.toLowerCase().includes(q)
-        );
-    }
-
-    d.sort((a, b) => {
-        const av = a[S.sCol], bv = b[S.sCol];
-        if (typeof av === 'number') return S.sDir === 'asc' ? av - bv : bv - av;
-        return S.sDir === 'asc'
-            ? String(av).localeCompare(String(bv))
-            : String(bv).localeCompare(String(av));
-    });
-
-    if ($('cnt')) $('cnt').textContent = `${d.length} calciatori`;
-
-    const emptyEl = $('svEmpty');
-    const tbody = document.querySelector('#tSv tbody');
-    if (!tbody) return;
-
-    if (d.length === 0) {
-        if (emptyEl) emptyEl.style.display = 'block';
-        tbody.innerHTML = '';
-        return;
-    } else if (emptyEl) {
-        emptyEl.style.display = 'none';
-    }
-
-    tbody.innerHTML = d.map(r => `<tr data-role="${r.Ruolo}" data-player-name="${r.Nome}">
-        <td><span class="rb rb-${r.Ruolo.toLowerCase()}">${r.Ruolo}</span></td>
-        <td>
-            <div class="sv-name-wrap">
-                <span class="sv-pname">${r.Nome}</span>
-                <div class="show-sm sv-mobile-stats">
-                    <span class="sv-mini-tag sq">${getTeamAbbr(r.Squadra)}</span>
-                    <span class="sv-mini-tag fm">FM ${r.FM || '—'}</span>
-                    <span class="sv-mini-tag mv">MV ${r.MV || '—'}</span>
-                    <span class="sv-mini-tag pg">PG ${r.PG || '0'}</span>
-                </div>
-            </div>
-        </td>
-        <td class="hide-sm" style="color:var(--tx2)">${r.Squadra}</td>
-        <td class="n fvm-val">
-            <span class="hide-sm">${r.FVM}</span>
-            <span class="show-sm fvm-badge">FVM ${r.FVM}</span>
-        </td>
-        <td class="n hide-sm">${r.FM || '—'}</td>
-        <td class="n hide-sm">${r.MV || '—'}</td>
-        <td class="n hide-sm">${r.PG}</td>
-        <td class="n"><span class="qt">${r.Quotazione}</span></td>
-    </tr>`).join('');
-
-    // Wire Click on rows to open Player Detail Modal
-    tbody.querySelectorAll('tr[data-player-name]').forEach(tr => {
-        tr.addEventListener('click', () => {
-            const pName = tr.dataset.playerName;
-            const p = S.dbGiocatori.find(x => x.nome === pName);
-            if (p) openPlayerModal(p);
-        });
-    });
-
-    // Indicatori frecce ordini header
-    document.querySelectorAll('#tSv th[data-s]').forEach(th => {
-        th.classList.remove('sa', 'sd');
-        const col = th.dataset.s;
-        const arrow = col === S.sCol ? (S.sDir === 'asc' ? '↑' : '↓') : '⇕';
-        if (col === S.sCol && !(window.innerWidth <= 768 && col === 'FVM')) {
-            th.classList.add(S.sDir === 'asc' ? 'sa' : 'sd');
-        }
-
-        if (col === 'FVM') {
-            th.innerHTML = `<span class="hide-sm">FVM ${arrow}</span><span class="show-sm">Sq.</span>`;
-        } else {
-            let label = (th.dataset.label || th.textContent).replace(/[ ⇕↑↓]/g, '');
-            th.dataset.label = label;
-            th.innerHTML = `${label} ${arrow}`;
-        }
-    });
+    const isFilteredGio = !!(S.fR_gio || S.fS_gio || S.fQ_gio);
+    if ($('btnResetGio')) $('btnResetGio').style.display = isFilteredGio ? 'inline-flex' : 'none';
 }
 
 // ── Render Mercato (Tabella pulita) ──────────────────────────────────
@@ -583,35 +475,17 @@ function rMercato() {
         }
     }
 
-    // Ordinamento dinamico per CambiRimasti, CreditiRimasti o Fantasquadra
-    const col = S.sCol_mer || 'CambiRimasti';
-    const dir = S.sDir_mer || 'desc';
-
+    // Ordinamento fisso di default: Crediti residui (decrescente), Cambi rimasti (decrescente), Fantasquadra (A-Z)
     const sortedCambi = [...S.cambi].sort((a, b) => {
-        if (col === 'Fantasquadra') {
-            const res = a.Fantasquadra.localeCompare(b.Fantasquadra);
-            return dir === 'asc' ? res : -res;
-        }
+        const cra = +a.CreditiRimasti || 0;
+        const crb = +b.CreditiRimasti || 0;
+        if (cra !== crb) return crb - cra;
 
-        if (col === 'CambiRimasti') {
-            const ca = +a.CambiRimasti || 0;
-            const cb = +b.CambiRimasti || 0;
-            if (ca !== cb) {
-                return dir === 'asc' ? ca - cb : cb - ca;
-            }
-            return (+b.CreditiRimasti || 0) - (+a.CreditiRimasti || 0);
-        }
+        const ca = +a.CambiRimasti || 0;
+        const cb = +b.CambiRimasti || 0;
+        if (ca !== cb) return cb - ca;
 
-        if (col === 'CreditiRimasti') {
-            const cra = +a.CreditiRimasti || 0;
-            const crb = +b.CreditiRimasti || 0;
-            if (cra !== crb) {
-                return dir === 'asc' ? cra - crb : crb - cra;
-            }
-            return (+b.CambiRimasti || 0) - (+a.CambiRimasti || 0);
-        }
-
-        return 0;
+        return a.Fantasquadra.localeCompare(b.Fantasquadra);
     });
 
     const tbody = document.querySelector('#tCambi tbody');
@@ -627,60 +501,42 @@ function rMercato() {
         const fillPct = Math.min(100, (cambiVal / 10) * 100);
 
         return `<tr>
-            <td style="font-weight:600">${r.Fantasquadra}</td>
-            <td class="n">
+            <td class="col-fantasquadra"><span class="fsq-name">⚽ ${r.Fantasquadra}</span></td>
+            <td class="n col-cambi">
                 <div class="cambi-bar-wrap">
                     <span class="cambi-val">${cambiVal}</span>
-                    <div class="cambi-track"><div class="cambi-fill" style="width:${fillPct}%"></div></div>
+                    <div class="cambi-track" title="${cambiVal} cambi rimasti"><div class="cambi-fill" style="width:${fillPct}%"></div></div>
                 </div>
             </td>
-            <td class="n">${credHtml}</td>
+            <td class="n col-crediti">${credHtml}</td>
         </tr>`;
     }).join('');
-
-    // Update Header Sort Arrows for Mercato
-    document.querySelectorAll('#tCambi th[data-sm]').forEach(th => {
-        th.classList.remove('sa', 'sd');
-        const thCol = th.dataset.sm;
-        const arrow = thCol === S.sCol_mer ? (S.sDir_mer === 'asc' ? '↑' : '↓') : '⇕';
-        if (thCol === S.sCol_mer) {
-            th.classList.add(S.sDir_mer === 'asc' ? 'sa' : 'sd');
-        }
-
-        let label = th.dataset.label || th.textContent.replace(/[ ⇕↑↓]/g, '').trim();
-        th.dataset.label = label;
-        th.innerHTML = `${label} &nbsp;${arrow}`;
-    });
 }
 
 // ── Render All ───────────────────────────────────────────────────────
 function render() {
     rGiocatori();
-    rSv();
     rMercato();
 }
 
 // ── Events Setup ─────────────────────────────────────────────────────
 function setup() {
-    // Player Modal Close
-    $('pmClose')?.addEventListener('click', closePlayerModal);
-    $('playerModal')?.addEventListener('click', e => {
-        if (e.target === $('playerModal')) closePlayerModal();
-    });
-
-    // Keyboard Shortcuts per Asta Live
+    // Keyboard Shortcuts
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape') {
-            closePlayerModal();
+            if (S.expandedPlayerName) {
+                S.expandedPlayerName = null;
+                rGiocatori();
+            }
             return;
         }
         if (e.target.matches('input, textarea')) return;
 
         if (e.key === '/') {
             e.preventDefault();
-            const qInput = $('qGio') || $('q');
+            const qInput = $('qGio');
             if (qInput) qInput.focus();
-        } else if (['1', '2', '3'].includes(e.key)) {
+        } else if (['1', '2'].includes(e.key)) {
             const tabs = document.querySelectorAll('.t');
             const idx = Number(e.key) - 1;
             if (tabs[idx]) tabs[idx].click();
@@ -702,20 +558,19 @@ function setup() {
             document.querySelectorAll('.v').forEach(x => x.classList.remove('on'));
             b.classList.add('active');
             $(`v-${b.dataset.v}`).classList.add('on');
-            closePicker();
         })
     );
 
     // Giornata Navigator
-    $('gnPrev').addEventListener('click', () => {
+    $('gnPrev')?.addEventListener('click', () => {
         const i = S.giornate.indexOf(S.gn);
         if (i > 0) load(S.giornate[i - 1]);
     });
-    $('gnNext').addEventListener('click', () => {
+    $('gnNext')?.addEventListener('click', () => {
         const i = S.giornate.indexOf(S.gn);
         if (i < S.giornate.length - 1) load(S.giornate[i + 1]);
     });
-    $('gnLabel').addEventListener('click', e => {
+    $('gnLabel')?.addEventListener('click', e => {
         e.stopPropagation();
         pickerOpen ? closePicker() : openPicker(e.currentTarget);
     });
@@ -751,8 +606,6 @@ function setup() {
             document.querySelectorAll('.pill-gio-r').forEach(x => x.classList.remove('on'));
             p.classList.add('on');
             S.fR_gio = p.dataset.r;
-            S.sCol_gio = 'Quotazione';
-            S.sDir_gio = 'desc';
             rGiocatori();
         })
     );
@@ -767,71 +620,17 @@ function setup() {
         })
     );
 
-    // Database Giocatori — Sort colonne
-    document.querySelectorAll('#tGiocatori th[data-sg]').forEach(th =>
-        th.addEventListener('click', () => {
-            const c = th.dataset.sg;
-            S.sDir_gio = (S.sCol_gio === c && S.sDir_gio === 'desc') ? 'asc' : 'desc';
-            S.sCol_gio = c;
-            rGiocatori();
-        })
-    );
-
-    // Svincolati — Ricerca con Debounce
-    const searchInput = $('q');
-    const clearBtn = $('searchClear');
-
-    const debouncedSearchSv = debounce(value => {
-        S.fQ = value.toLowerCase().trim();
-        if (clearBtn) clearBtn.style.display = S.fQ ? 'block' : 'none';
-        rSv();
-    }, 120);
-
-    if (searchInput) {
-        searchInput.addEventListener('input', e => debouncedSearchSv(e.target.value));
-    }
-
-    if (clearBtn) {
-        clearBtn.addEventListener('click', () => {
-            if (searchInput) searchInput.value = '';
-            S.fQ = '';
-            clearBtn.style.display = 'none';
-            rSv();
-            if (searchInput) searchInput.focus();
-        });
-    }
-
-    // Svincolati — Pills filtro ruolo
-    document.querySelectorAll('.pill').forEach(p => {
-        if (p.classList.contains('pill-gio-r') || p.classList.contains('pill-gio-s')) return;
-        p.addEventListener('click', () => {
-            document.querySelectorAll('.pill:not(.pill-gio-r):not(.pill-gio-s)').forEach(x => x.classList.remove('on'));
-            p.classList.add('on');
-            S.fR = p.dataset.r;
-            rSv();
-        });
+    // Database Giocatori — Reset filtri
+    $('btnResetGio')?.addEventListener('click', () => {
+        S.fR_gio = '';
+        S.fS_gio = '';
+        S.fQ_gio = '';
+        if ($('qGio')) $('qGio').value = '';
+        if ($('searchClearGio')) $('searchClearGio').style.display = 'none';
+        document.querySelectorAll('.pill-gio-r').forEach(x => x.classList.toggle('on', x.dataset.r === ''));
+        document.querySelectorAll('.pill-gio-s').forEach(x => x.classList.toggle('on', x.dataset.st === ''));
+        rGiocatori();
     });
-
-    // Svincolati — Sort colonne
-    document.querySelectorAll('#tSv th[data-s]').forEach(th =>
-        th.addEventListener('click', () => {
-            if (window.innerWidth <= 768 && th.dataset.s === 'FVM') return;
-            const c = th.dataset.s;
-            S.sDir = (S.sCol === c && S.sDir === 'desc') ? 'asc' : 'desc';
-            S.sCol = c;
-            rSv();
-        })
-    );
-
-    // Mercato — Header Click Sort
-    document.querySelectorAll('#tCambi th[data-sm]').forEach(th =>
-        th.addEventListener('click', () => {
-            const c = th.dataset.sm;
-            S.sDir_mer = (S.sCol_mer === c && S.sDir_mer === 'desc') ? 'asc' : 'desc';
-            S.sCol_mer = c;
-            rMercato();
-        })
-    );
 }
 
 // ── Init App ─────────────────────────────────────────────────────────

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fantanucleo Market 26/27</title>
-    <meta name="description" content="Ricerca Calciatori, Possesso Squadre, Svincolati e Crediti — Fantanucleo Market 26/27">
+    <meta name="description" content="Ricerca Calciatori, Possesso Squadre e Crediti — Fantanucleo Market 26/27">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
@@ -21,9 +21,6 @@
         <button class="t active" data-v="giocatori">
             <span class="tab-icon">🔍</span> Giocatori
         </button>
-        <button class="t" data-v="svincolati">
-            <span class="tab-icon">📋</span> Svincolati
-        </button>
         <button class="t" data-v="mercato">
             <span class="tab-icon">💰</span> Crediti & Cambi
         </button>
@@ -31,9 +28,9 @@
 
     <div class="bar-right">
         <div class="gn-nav">
-            <button class="gn-btn" id="gnPrev" title="Giornata precedente">‹</button>
-            <button class="gn-label" id="gnLabel" title="Seleziona giornata">G1</button>
-            <button class="gn-btn" id="gnNext" title="Giornata successiva">›</button>
+            <button class="gn-btn" id="gnPrev" title="Giornata precedente" aria-label="Giornata precedente">‹</button>
+            <button class="gn-label" id="gnLabel" title="Seleziona giornata" aria-label="Seleziona giornata">G1 <span class="gn-arrow">▾</span></button>
+            <button class="gn-btn" id="gnNext" title="Giornata successiva" aria-label="Giornata successiva">›</button>
         </div>
     </div>
 </header>
@@ -47,9 +44,12 @@
     <section class="v on" id="v-giocatori">
         <div class="toolbar-card">
             <div class="search-wrap">
-                <span class="search-icon">🔍</span>
-                <input id="qGio" type="search" class="search" placeholder="Cerca calciatore o squadra Serie A…">
-                <button id="searchClearGio" class="search-clear" title="Cancella ricerca">✕</button>
+                <div class="search-input-box">
+                    <span class="search-icon">🔍</span>
+                    <input id="qGio" type="search" class="search" placeholder="Cerca calciatore o squadra Serie A…">
+                    <button id="searchClearGio" class="search-clear" aria-label="Cancella ricerca" title="Cancella ricerca">✕</button>
+                </div>
+                <span class="cnt-badge" id="cntGio"></span>
             </div>
 
             <div class="filter-row">
@@ -69,7 +69,7 @@
                     <button class="pill-gio-s pill st-poss" data-st="posseduto">Posseduti</button>
                 </div>
 
-                <span class="cnt" id="cntGio"></span>
+                <button id="btnResetGio" class="btn-reset-filters" style="display:none;" aria-label="Reset filtri" title="Reset filtri">✕ Reset filtri</button>
             </div>
         </div>
 
@@ -77,62 +77,16 @@
             <div class="scroll">
                 <table id="tGiocatori">
                     <thead><tr>
-                        <th data-sg="Ruolo">R ⇕</th>
-                        <th data-sg="Nome">Nome ⇕</th>
+                        <th>R</th>
+                        <th>Nome</th>
                         <th>Squadra</th>
-                        <th class="n" data-sg="Quotazione">Quot (cr) ⇕</th>
-                        <th data-sg="owners">Possesso ⇕</th>
+                        <th class="n">Quot (cr)</th>
+                        <th>Possesso</th>
                     </tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
             <div id="gioEmpty" class="empty-state" style="display:none;">
-                <span>🔎</span>
-                <p>Nessun calciatore trovato con i filtri correnti</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- SVINCOLATI -->
-    <section class="v" id="v-svincolati">
-        <div class="toolbar-card">
-            <div class="search-wrap">
-                <span class="search-icon">🔍</span>
-                <input id="q" type="search" class="search" placeholder="Cerca svincolato o squadra Serie A…">
-                <button id="searchClear" class="search-clear" title="Cancella ricerca">✕</button>
-            </div>
-
-            <div class="filter-row">
-                <div class="pill-group">
-                    <span class="filter-label">Ruolo:</span>
-                    <button class="pill on" data-r="">Tutti <span class="pill-cnt" id="cnt-all"></span></button>
-                    <button class="pill pp" data-r="P">P <span class="pill-cnt" id="cnt-p"></span></button>
-                    <button class="pill pd" data-r="D">D <span class="pill-cnt" id="cnt-d"></span></button>
-                    <button class="pill pc" data-r="C">C <span class="pill-cnt" id="cnt-c"></span></button>
-                    <button class="pill pa" data-r="A">A <span class="pill-cnt" id="cnt-a"></span></button>
-                </div>
-
-                <span class="cnt" id="cnt"></span>
-            </div>
-        </div>
-
-        <div class="box full-box">
-            <div class="scroll">
-                <table id="tSv">
-                    <thead><tr>
-                        <th>R</th>
-                        <th>Nome</th>
-                        <th class="hide-sm">Squadra</th>
-                        <th class="n" data-s="FVM"><span class="hide-sm">FVM ⇕</span><span class="show-sm">Sq.</span></th>
-                        <th class="n" data-s="FM">FM ⇕</th>
-                        <th class="n hide-sm" data-s="MV">MV ⇕</th>
-                        <th class="n hide-sm" data-s="PG">PG ⇕</th>
-                        <th class="n" data-s="Quotazione">Quot (cr) ⇕</th>
-                    </tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-            <div id="svEmpty" class="empty-state" style="display:none;">
                 <span>🔎</span>
                 <p>Nessun calciatore trovato con i filtri correnti</p>
             </div>
@@ -146,9 +100,9 @@
             <div class="scroll">
                 <table id="tCambi">
                     <thead><tr>
-                        <th data-sm="Fantasquadra" data-label="Squadra">Squadra &nbsp;⇕</th>
-                        <th class="n" data-sm="CambiRimasti" data-label="Cambi rimasti">Cambi rimasti &nbsp;⇕</th>
-                        <th class="n" data-sm="CreditiRimasti" data-label="Crediti residui">Crediti residui &nbsp;⇕</th>
+                        <th>Squadra</th>
+                        <th class="n">Cambi rimasti</th>
+                        <th class="n">Crediti residui</th>
                     </tr></thead>
                     <tbody></tbody>
                 </table>
@@ -157,51 +111,6 @@
     </section>
 
 </main>
-
-<!-- MODAL DETTAGLIO CALCIATORE -->
-<div id="playerModal" class="player-modal">
-    <div class="player-modal-content">
-        <div class="pm-header">
-            <div class="pm-title-wrap">
-                <span id="pmRuolo" class="rb">P</span>
-                <span id="pmNome" class="pm-nome">Nome</span>
-                <span id="pmSq" class="pm-sq">(Squadra)</span>
-            </div>
-            <button id="pmClose" class="pm-close">&times;</button>
-        </div>
-        <div class="pm-body">
-            <div id="pmInfoGrid" class="pm-info-grid">
-                <div class="pm-stat">
-                    <span class="pm-stat-lbl">Quotazione</span>
-                    <span id="pmQuot" class="pm-stat-val">0 cr</span>
-                </div>
-                <div class="pm-stat">
-                    <span class="pm-stat-lbl">FVM</span>
-                    <span id="pmFVM" class="pm-stat-val">—</span>
-                </div>
-                <div class="pm-stat">
-                    <span class="pm-stat-lbl">Fantamedia</span>
-                    <span id="pmFM" class="pm-stat-val">—</span>
-                </div>
-                <div class="pm-stat">
-                    <span class="pm-stat-lbl">Media Voto</span>
-                    <span id="pmMV" class="pm-stat-val">—</span>
-                </div>
-                <div class="pm-stat">
-                    <span class="pm-stat-lbl">Partite (PG)</span>
-                    <span id="pmPG" class="pm-stat-val">—</span>
-                </div>
-                <div class="pm-stat">
-                    <span class="pm-stat-lbl">Possessori</span>
-                    <span id="pmCount" class="pm-stat-val">0 squadre</span>
-                </div>
-            </div>
-            <div class="pm-owners-section">
-                <div id="pmOwnersList" class="pm-owners-list"></div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <script src="app.js"></script>
 </body>
