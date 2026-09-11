@@ -55,7 +55,7 @@ function renderExpandedRow(p) {
     if (isFree) {
         // PER GLI SVINCOLATI: mostra la griglia con tutte le statistiche ed il tag libero
         return `<tr class="expand-row">
-            <td colspan="5">
+            <td colspan="6">
                 <div class="inline-player-detail">
                     <div class="pm-info-grid">
                         <div class="pm-stat">
@@ -92,15 +92,16 @@ function renderExpandedRow(p) {
             </td>
         </tr>`;
     } else {
-        // PER I POSSEDUTI: mostra SOLTANTO l'elenco delle squadre possessori
+        // PER I POSSEDUTI: mostra elenco squadre possessori + nota esplicativa
         const ownersHtml = p.owners.map(team => `<div class="pm-owner-chip">⚽ ${team}</div>`).join('');
         return `<tr class="expand-row">
-            <td colspan="5">
+            <td colspan="6">
                 <div class="inline-player-detail">
                     <div class="pm-owners-section">
                         <span class="pm-section-lbl">Posseduto da ${count} ${count === 1 ? 'squadra' : 'squadre'}:</span>
                         <div class="pm-owners-list">${ownersHtml}</div>
                     </div>
+                    <div class="pm-info-note">ℹ️ Statistiche dettagliate (FVM, FM, MV, PG) disponibili solo per i calciatori svincolati.</div>
                 </div>
             </td>
         </tr>`;
@@ -309,7 +310,22 @@ async function load(n) {
 // ── Giornata Navigator & Picker ──────────────────────────────────────
 function updateNav() {
     const label = $('gnLabel');
-    if (label) label.innerHTML = `G${S.gn} <span class="gn-arrow">▾</span>`;
+    const isCurrent = S.gn === S.giornate[S.giornate.length - 1];
+    if (label) {
+        label.innerHTML = `G${S.gn} ${isCurrent ? '<span class="gn-cur-badge">LIVE</span>' : ''}<span class="gn-arrow">▾</span>`;
+    }
+
+    // Show/hide historic banner
+    const banner = $('historicBanner');
+    if (banner) {
+        if (isCurrent) {
+            banner.style.display = 'none';
+        } else {
+            banner.style.display = 'flex';
+            banner.innerHTML = `⏳ Stai visualizzando la <strong>Giornata ${S.gn}</strong> — <button class="go-current-btn" id="goCurrentBtn">Vai alla corrente (G${S.giornate[S.giornate.length - 1]})</button>`;
+            $('goCurrentBtn')?.addEventListener('click', () => load(S.giornate[S.giornate.length - 1]));
+        }
+    }
 
     const prevBtn = $('gnPrev');
     if (prevBtn) prevBtn.disabled = S.gn <= S.giornate[0];
@@ -317,9 +333,11 @@ function updateNav() {
     const nextBtn = $('gnNext');
     if (nextBtn) nextBtn.disabled = S.gn >= S.giornate[S.giornate.length - 1];
 
-    document.querySelectorAll('.pk-btn').forEach(b =>
-        b.classList.toggle('cur', +b.dataset.n === S.gn)
-    );
+    document.querySelectorAll('.pk-btn').forEach(b => {
+        b.classList.toggle('cur', +b.dataset.n === S.gn);
+        // Mark the latest matchday in picker
+        b.classList.toggle('latest', +b.dataset.n === S.giornate[S.giornate.length - 1]);
+    });
 }
 
 function buildPicker() {
@@ -422,8 +440,9 @@ function rGiocatori() {
         const rowClass = isExpanded ? 'player-row active-expanded' : 'player-row';
         const quotVal = p.quot || 0;
         const sqText = p.sq ? p.sq : '—';
+        const chevron = isExpanded ? '▾' : '▸';
 
-        html += `<tr class="${rowClass}" data-role="${p.ruolo}" data-player-name="${p.nome}">
+        html += `<tr class="${rowClass}" data-role="${p.ruolo}" data-player-name="${p.nome}" aria-expanded="${isExpanded}" role="button" tabindex="0">
             <td class="col-role"><span class="rb rb-${(p.ruolo || '').toLowerCase()}">${p.ruolo || '?'}</span></td>
             <td class="col-nome"><span class="pname-text">${p.nome}</span></td>
             <td class="col-squadra">
@@ -432,6 +451,7 @@ function rGiocatori() {
             </td>
             <td class="n col-quot"><span class="qt-badge">${quotVal} <small class="qt-unit">cr</small></span></td>
             <td class="col-possesso">${ownerHtml}</td>
+            <td class="col-chevron"><span class="row-chevron">${chevron}</span></td>
         </tr>`;
 
         if (isExpanded) {
@@ -500,12 +520,17 @@ function rMercato() {
         const cambiVal = r.CambiRimasti;
         const fillPct = Math.min(100, (cambiVal / 10) * 100);
 
+        // Cambi bar color: green > 5, yellow 2-5, red < 2
+        let cambiColor = 'cambi-green';
+        if (cambiVal < 2) cambiColor = 'cambi-red';
+        else if (cambiVal <= 5) cambiColor = 'cambi-yellow';
+
         return `<tr>
             <td class="col-fantasquadra"><span class="fsq-name">⚽ ${r.Fantasquadra}</span></td>
             <td class="n col-cambi">
                 <div class="cambi-bar-wrap">
                     <span class="cambi-val">${cambiVal}</span>
-                    <div class="cambi-track" title="${cambiVal} cambi rimasti"><div class="cambi-fill" style="width:${fillPct}%"></div></div>
+                    <div class="cambi-track ${cambiColor}" title="${cambiVal} cambi rimasti"><div class="cambi-fill" style="width:${fillPct}%"></div></div>
                 </div>
             </td>
             <td class="n col-crediti">${credHtml}</td>
