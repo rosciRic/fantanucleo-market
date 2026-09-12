@@ -1291,7 +1291,328 @@ tbody tr.active-expanded .row-chevron {
     color: var(--tx2);
 }
 
+/* ── ROSE TAB — Accordion Cards ── */
+.rose-summary {
+    padding: 12px 16px;
+    margin-bottom: 8px;
+}
+.rose-summary-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tx2);
+    letter-spacing: 0.3px;
+}
 
+.rose-accordion {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 0 16px 24px;
+}
+
+.rose-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.rose-card:hover {
+    border-color: var(--line-accent);
+}
+.rose-card-open {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent-glow), 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.rose-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    cursor: pointer;
+    gap: 12px;
+    transition: background 0.15s ease;
+}
+.rose-card-header:hover {
+    background: var(--card-hover);
+}
+
+.rose-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.rose-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+/* Position badge */
+.rose-pos {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--tx2);
+    flex-shrink: 0;
+}
+.rose-pos-1 {
+    background: linear-gradient(135deg, rgba(234, 179, 8, 0.2), rgba(234, 179, 8, 0.08));
+    color: #fbbf24;
+    border: 1px solid rgba(234, 179, 8, 0.3);
+}
+.rose-pos-2 {
+    background: linear-gradient(135deg, rgba(148, 163, 184, 0.2), rgba(148, 163, 184, 0.08));
+    color: #cbd5e1;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+}
+.rose-pos-3 {
+    background: linear-gradient(135deg, rgba(180, 120, 60, 0.2), rgba(180, 120, 60, 0.08));
+    color: #d4a574;
+    border: 1px solid rgba(180, 120, 60, 0.3);
+}
+
+.rose-team-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--tx);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.rose-pts {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+}
+.rose-pts small {
+    font-weight: 500;
+    font-size: 11px;
+    opacity: 0.7;
+}
+
+
+.rose-total {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tx2);
+    background: rgba(255, 255, 255, 0.04);
+    padding: 3px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+.rose-total small {
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+.rose-chevron {
+    font-size: 14px;
+    color: var(--tx3);
+    width: 20px;
+    text-align: center;
+    transition: transform 0.2s ease;
+}
+
+/* Expanded body */
+.rose-card-body {
+    border-top: 1px solid var(--line);
+    padding: 0;
+}
+
+.rose-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid var(--line);
+}
+
+.rose-meta-item {
+    font-size: 12px;
+    color: var(--tx2);
+}
+.rose-meta-item strong {
+    color: var(--tx);
+    font-weight: 600;
+}
+.rose-meta-item.delta-pos strong { color: #22c55e; }
+.rose-meta-item.delta-neg strong { color: #ef4444; }
+
+/* Rose table */
+.rose-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.rose-table thead th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--tx3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+}
+.rose-table thead th.n {
+    text-align: right;
+}
+.rose-table tbody tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    transition: background 0.1s ease;
+}
+.rose-table tbody tr:last-child {
+    border-bottom: none;
+}
+.rose-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+.rose-table tbody td {
+    padding: 8px 12px;
+    vertical-align: middle;
+}
+.rose-table tbody td.n {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.rose-pname {
+    font-weight: 500;
+    color: var(--tx);
+}
+.rose-sq {
+    color: var(--tx2);
+    font-size: 12px;
+}
+
+/* Delta colors */
+.delta-pos { color: #22c55e; font-weight: 600; }
+.delta-neg { color: #ef4444; font-weight: 600; }
+
+/* Fuori lista */
+.rose-row-fl {
+    opacity: 0.5;
+}
+.rose-pname-fl {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.fl-tag {
+    font-size: 9px;
+    font-weight: 700;
+    color: #f97316;
+    background: rgba(249, 115, 22, 0.12);
+    border: 1px solid rgba(249, 115, 22, 0.25);
+    padding: 1px 5px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+}
+
+/* ── ROSE TAB MOBILE ── */
+@media (max-width: 640px) {
+    .rose-accordion {
+        padding: 0 8px 16px;
+    }
+    .rose-card-header {
+        flex-wrap: wrap;
+        padding: 12px;
+        gap: 6px;
+    }
+    .rose-header-left {
+        flex: 1 1 100%;
+    }
+    .rose-header-right {
+        flex: 1 1 100%;
+        justify-content: flex-start;
+        gap: 8px;
+    }
+    .rose-team-name {
+        font-size: 13px;
+    }
+    .rose-roles-mini {
+        font-size: 10px;
+    }
+    .rose-meta-row {
+        gap: 8px;
+        padding: 10px 12px;
+    }
+    .rose-meta-item {
+        font-size: 11px;
+    }
+
+    /* Mobile: card layout for rose table */
+    .rose-table thead {
+        display: none;
+    }
+    .rose-table tbody {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+    .rose-table tbody tr {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        grid-template-rows: auto auto;
+        gap: 2px 8px;
+        padding: 8px 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .rose-table tbody td {
+        padding: 0;
+    }
+    /* Role badge */
+    .rose-table tbody td:nth-child(1) {
+        grid-row: 1 / 3;
+        align-self: center;
+    }
+    /* Name */
+    .rose-table tbody td:nth-child(2) {
+        grid-column: 2;
+        grid-row: 1;
+        font-size: 13px;
+    }
+    /* Squadra */
+    .rose-table tbody td:nth-child(3) {
+        grid-column: 2;
+        grid-row: 2;
+        font-size: 11px;
+    }
+    /* Costo */
+    .rose-table tbody td:nth-child(4) {
+        grid-column: 3;
+        grid-row: 1;
+        text-align: right;
+        font-size: 12px;
+    }
+    /* QtA */
+    .rose-table tbody td:nth-child(5) {
+        grid-column: 3;
+        grid-row: 2;
+        text-align: right;
+        font-size: 11px;
+        color: var(--tx2);
+    }
+    /* Delta - hide on mobile */
+    .rose-table tbody td:nth-child(6) {
+        display: none;
+    }
+}
 
 
 

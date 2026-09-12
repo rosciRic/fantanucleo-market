@@ -16,7 +16,8 @@ const S = {
     fQ_gio: '',
 
     // Stato riga espansa (Accordion inline)
-    expandedPlayerName: null
+    expandedPlayerName: null,
+    expandedRoseTeam: null
 };
 
 const ROLE_ORDER = { P: 1, D: 2, C: 3, A: 4 };
@@ -200,7 +201,9 @@ async function load(n) {
 
     // Rose indicizzate per squadra (ESCLUDENDO fuori lista *)
     S.rose = {};
+    S.roseAll = {};  // Include anche fuori lista per tab Rose
     for (const r of rose) {
+        (S.roseAll[r.Fantasquadra] ??= []).push(r);
         if (isAsterisk(r.Calciatore) || isAsterisk(r.Nome)) continue;
         (S.rose[r.Fantasquadra] ??= []).push(r);
     }
@@ -475,6 +478,185 @@ function rGiocatori() {
     if ($('btnResetGio')) $('btnResetGio').style.display = isFilteredGio ? 'inline-flex' : 'none';
 }
 
+// ── Render Rose (Accordion per squadra, ordinate per classifica) ─────
+function rRose() {
+    const container = $('roseAccordion');
+    const summaryEl = $('roseSummary');
+    if (!container) return;
+
+    // Build standings lookup { Fantasquadra: { pos, pts } }
+    const standingsMap = {};
+    for (const s of S.standings) {
+        standingsMap[s.Fantasquadra] = { pos: s.Posizione, pts: s.Punti };
+    }
+
+    // Build cambi/crediti lookup
+    const cambiMap = {};
+    for (const c of S.cambi) {
+        cambiMap[c.Fantasquadra] = { cambi: c.CambiRimasti, crediti: c.CreditiRimasti };
+    }
+
+    // Get all team names from rose
+    const teamNames = Object.keys(S.roseAll);
+
+    // Sort by standings: teams in classifica first (by position), then others alphabetically
+    teamNames.sort((a, b) => {
+        const sa = standingsMap[a];
+        const sb = standingsMap[b];
+        if (sa && sb) return sa.pos - sb.pos;
+        if (sa) return -1;
+        if (sb) return 1;
+        return a.localeCompare(b);
+    });
+
+    // Summary bar
+    if (summaryEl) {
+        summaryEl.innerHTML = `<span class="rose-summary-text">📋 ${teamNames.length} squadre · Giornata ${S.gn}</span>`;
+    }
+
+    let html = '';
+    for (const team of teamNames) {
+        const players = S.roseAll[team] || [];
+        const info = standingsMap[team];
+        const ci = cambiMap[team];
+        const pos = info ? info.pos : '—';
+        const pts = info ? info.pts : '—';
+        const cambiVal = ci ? ci.cambi : '—';
+        const creditiVal = ci ? ci.crediti : '—';
+        const isExpanded = S.expandedRoseTeam === team;
+
+
+        // Total squad value (sum of Costo d'acquisto)
+        const totalCosto = players.reduce((sum, p) => sum + (+p.Costo || 0), 0);
+
+        // Total current quotazione
+        let totalQta = 0;
+        for (const p of players) {
+            const rawName = (p.Calciatore || p.Nome || '').trim();
+            const cleanName = rawName.replace(/\s*\*\s*$/, '');
+            const qInfo = S.quotMap[cleanName.toLowerCase()];
+            if (qInfo) {
+                totalQta += qInfo.qta;
+            } else {
+                // Fuori lista: use purchase cost as value
+                totalQta += (+p.Costo || 0);
+            }
+        }
+        const totalDelta = totalQta - totalCosto;
+        const deltaClass = totalDelta > 0 ? 'delta-pos' : (totalDelta < 0 ? 'delta-neg' : '');
+        const deltaSign = totalDelta > 0 ? '+' : '';
+
+        // Position badge class
+        let posClass = 'rose-pos';
+        if (pos === 1) posClass += ' rose-pos-1';
+        else if (pos === 2) posClass += ' rose-pos-2';
+        else if (pos === 3) posClass += ' rose-pos-3';
+
+        html += `<div class="rose-card ${isExpanded ? 'rose-card-open' : ''}" data-team="${team}">
+            <div class="rose-card-header" data-team="${team}" role="button" tabindex="0" aria-expanded="${isExpanded}">
+                <div class="rose-header-left">
+                    <span class="${posClass}">${pos}</span>
+                    <span class="rose-team-name">⚽ ${team}</span>
+                    <span class="rose-pts">${pts} <small>pt</small></span>
+                </div>
+                <div class="rose-header-right">
+                    <span class="rose-total">Val. ${totalQta} <small>cr</small></span>
+                    <span class="rose-chevron">${isExpanded ? '▾' : '▸'}</span>
+                </div>
+            </div>`;
+
+        if (isExpanded) {
+            // Sort players: by role order, then by quotazione desc
+            const sortedPlayers = [...players].sort((a, b) => {
+                const ra = ROLE_ORDER[a.Ruolo] || 99;
+                const rb = ROLE_ORDER[b.Ruolo] || 99;
+                if (ra !== rb) return ra - rb;
+                const ca = +a.Costo || 0;
+                const cb = +b.Costo || 0;
+                return cb - ca;
+            });
+
+            html += `<div class="rose-card-body">
+                <div class="rose-meta-row">
+                    <span class="rose-meta-item">Costo rosa: <strong>${totalCosto} cr</strong></span>
+                    <span class="rose-meta-item">Quotazione: <strong>${totalQta} cr</strong></span>
+                    <span class="rose-meta-item ${deltaClass}">Δ: <strong>${deltaSign}${totalDelta} cr</strong></span>`;
+            if (ci) {
+                html += `
+                    <span class="rose-meta-item">Cambi: <strong>${cambiVal}</strong></span>
+                    <span class="rose-meta-item">Crediti: <strong>${creditiVal} cr</strong></span>`;
+            }
+            html += `
+                </div>
+                <table class="rose-table">
+                    <thead><tr>
+                        <th>R</th>
+                        <th>Calciatore</th>
+                        <th>Squadra</th>
+                        <th class="n">Costo</th>
+                        <th class="n">QtA</th>
+                        <th class="n">Δ</th>
+                    </tr></thead>
+                    <tbody>`;
+
+            for (const p of sortedPlayers) {
+                const rawName = (p.Calciatore || p.Nome || '').trim();
+                const isFuoriLista = isAsterisk(rawName);
+                const pName = rawName.replace(/\s*\*\s*$/, '');
+                const pKey = pName.toLowerCase();
+                const qInfo = S.quotMap[pKey];
+                const costo = +p.Costo || 0;
+                const squadra = qInfo ? qInfo.sq : (p.Squadra || '—');
+                const ruolo = p.Ruolo || '?';
+
+                let qta, deltaHtml;
+                if (qInfo) {
+                    qta = qInfo.qta;
+                    const d = qInfo.qta - costo;
+                    const dc = d > 0 ? 'delta-pos' : (d < 0 ? 'delta-neg' : '');
+                    const ds = d > 0 ? '+' : '';
+                    deltaHtml = `<span class="${dc}">${ds}${d}</span>`;
+                } else {
+                    // Fuori lista or unknown: use purchase cost
+                    qta = costo;
+                    deltaHtml = '—';
+                }
+
+                const nameHtml = isFuoriLista
+                    ? `<span class="rose-pname-fl">${pName} <span class="fl-tag">FL</span></span>`
+                    : pName;
+
+                html += `<tr class="${isFuoriLista ? 'rose-row-fl' : ''}">
+                    <td><span class="rb rb-${ruolo.toLowerCase()}">${ruolo}</span></td>
+                    <td class="rose-pname">${nameHtml}</td>
+                    <td class="rose-sq">
+                        <span class="hide-sm">${squadra}</span>
+                        <span class="show-sm">${getTeamAbbr(squadra)}</span>
+                    </td>
+                    <td class="n">${costo} <small class="qt-unit">cr</small></td>
+                    <td class="n">${qta} <small class="qt-unit">cr</small></td>
+                    <td class="n">${deltaHtml}</td>
+                </tr>`;
+            }
+
+            html += `</tbody></table></div>`;
+        }
+
+        html += `</div>`;
+    }
+
+    container.innerHTML = html;
+
+    // Wire accordion click
+    container.querySelectorAll('.rose-card-header').forEach(hdr => {
+        hdr.addEventListener('click', () => {
+            const t = hdr.dataset.team;
+            S.expandedRoseTeam = (S.expandedRoseTeam === t) ? null : t;
+            rRose();
+        });
+    });
+}
+
 // ── Render Mercato (Tabella pulita) ──────────────────────────────────
 function rMercato() {
     if (!S.cambi || !S.cambi.length) return;
@@ -541,6 +723,7 @@ function rMercato() {
 // ── Render All ───────────────────────────────────────────────────────
 function render() {
     rGiocatori();
+    rRose();
     rMercato();
 }
 
@@ -561,7 +744,7 @@ function setup() {
             e.preventDefault();
             const qInput = $('qGio');
             if (qInput) qInput.focus();
-        } else if (['1', '2'].includes(e.key)) {
+        } else if (['1', '2', '3'].includes(e.key)) {
             const tabs = document.querySelectorAll('.t');
             const idx = Number(e.key) - 1;
             if (tabs[idx]) tabs[idx].click();
