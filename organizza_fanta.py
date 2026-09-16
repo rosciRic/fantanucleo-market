@@ -419,10 +419,16 @@ def main():
         open_dashboard()
         return
 
-    candidates_ris = sorted(
+    seen = set()
+    candidates_ris = []
+    for f in sorted(
         list(DOWNLOADS_DIR.glob("Risultati*.xlsx"))
         + [f for f in DOWNLOADS_DIR.glob("*.xlsx") if 'risultati' in f.name.lower()]
-    )
+    ):
+        resolved = f.resolve()
+        if resolved not in seen:
+            seen.add(resolved)
+            candidates_ris.append(f)
 
     candidates_quot = sorted(list(DOWNLOADS_DIR.glob("Quotazioni_Fantacalcio*.xlsx")))
 
@@ -435,6 +441,8 @@ def main():
         return
 
     for xlsx in candidates_ris:
+        if not xlsx.exists():
+            continue
         convert(xlsx)
 
     open_dashboard()
