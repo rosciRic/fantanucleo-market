@@ -1593,27 +1593,15 @@ tbody tr.active-expanded .row-chevron {
         grid-row: 2;
         font-size: 11px;
     }
-    /* Costo */
+    /* Valore */
     .rose-table tbody td:nth-child(4) {
         grid-column: 3;
-        grid-row: 1;
+        grid-row: 1 / 3;
         text-align: right;
-        font-size: 12px;
-    }
-    /* QtA */
-    .rose-table tbody td:nth-child(5) {
-        grid-column: 3;
-        grid-row: 2;
-        text-align: right;
-        font-size: 11px;
-        color: var(--tx2);
-    }
-    /* Delta - hide on mobile */
-    .rose-table tbody td:nth-child(6) {
-        display: none;
+        align-self: center;
+        font-size: 13px;
+        font-weight: 600;
     }
 }
-
-
 
 

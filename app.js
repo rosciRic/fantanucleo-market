@@ -526,9 +526,6 @@ function rRose() {
         const isExpanded = S.expandedRoseTeam === team;
 
 
-        // Total squad value (sum of Costo d'acquisto)
-        const totalCosto = players.reduce((sum, p) => sum + (+p.Costo || 0), 0);
-
         // Total current quotazione
         let totalQta = 0;
         for (const p of players) {
@@ -538,13 +535,9 @@ function rRose() {
             if (qInfo) {
                 totalQta += qInfo.qta;
             } else {
-                // Fuori lista: use purchase cost as value
                 totalQta += (+p.Costo || 0);
             }
         }
-        const totalDelta = totalQta - totalCosto;
-        const deltaClass = totalDelta > 0 ? 'delta-pos' : (totalDelta < 0 ? 'delta-neg' : '');
-        const deltaSign = totalDelta > 0 ? '+' : '';
 
         // Position badge class
         let posClass = 'rose-pos';
@@ -571,16 +564,19 @@ function rRose() {
                 const ra = ROLE_ORDER[a.Ruolo] || 99;
                 const rb = ROLE_ORDER[b.Ruolo] || 99;
                 if (ra !== rb) return ra - rb;
-                const ca = +a.Costo || 0;
-                const cb = +b.Costo || 0;
-                return cb - ca;
+                // Sort by QtA desc
+                const rawA = (a.Calciatore || a.Nome || '').trim().replace(/\s*\*\s*$/, '').toLowerCase();
+                const rawB = (b.Calciatore || b.Nome || '').trim().replace(/\s*\*\s*$/, '').toLowerCase();
+                const qaInfo = S.quotMap[rawA];
+                const qbInfo = S.quotMap[rawB];
+                const qa = qaInfo ? qaInfo.qta : (+a.Costo || 0);
+                const qb = qbInfo ? qbInfo.qta : (+b.Costo || 0);
+                return qb - qa;
             });
 
             html += `<div class="rose-card-body">
                 <div class="rose-meta-row">
-                    <span class="rose-meta-item">Costo rosa: <strong>${totalCosto} cr</strong></span>
-                    <span class="rose-meta-item">Quotazione: <strong>${totalQta} cr</strong></span>
-                    <span class="rose-meta-item ${deltaClass}">Δ: <strong>${deltaSign}${totalDelta} cr</strong></span>`;
+                    <span class="rose-meta-item">Valore rosa: <strong>${totalQta} cr</strong></span>`;
             if (ci) {
                 html += `
                     <span class="rose-meta-item">Cambi: <strong>${cambiVal}</strong></span>
@@ -593,9 +589,7 @@ function rRose() {
                         <th>R</th>
                         <th>Calciatore</th>
                         <th>Squadra</th>
-                        <th class="n">Costo</th>
-                        <th class="n">QtA</th>
-                        <th class="n">Δ</th>
+                        <th class="n">Valore</th>
                     </tr></thead>
                     <tbody>`;
 
@@ -608,19 +602,7 @@ function rRose() {
                 const costo = +p.Costo || 0;
                 const squadra = qInfo ? qInfo.sq : (p.Squadra || '—');
                 const ruolo = p.Ruolo || '?';
-
-                let qta, deltaHtml;
-                if (qInfo) {
-                    qta = qInfo.qta;
-                    const d = qInfo.qta - costo;
-                    const dc = d > 0 ? 'delta-pos' : (d < 0 ? 'delta-neg' : '');
-                    const ds = d > 0 ? '+' : '';
-                    deltaHtml = `<span class="${dc}">${ds}${d}</span>`;
-                } else {
-                    // Fuori lista or unknown: use purchase cost
-                    qta = costo;
-                    deltaHtml = '—';
-                }
+                const qta = qInfo ? qInfo.qta : costo;
 
                 const nameHtml = isFuoriLista
                     ? `<span class="rose-pname-fl">${pName} <span class="fl-tag">FL</span></span>`
@@ -633,9 +615,7 @@ function rRose() {
                         <span class="hide-sm">${squadra}</span>
                         <span class="show-sm">${getTeamAbbr(squadra)}</span>
                     </td>
-                    <td class="n">${costo} <small class="qt-unit">cr</small></td>
                     <td class="n">${qta} <small class="qt-unit">cr</small></td>
-                    <td class="n">${deltaHtml}</td>
                 </tr>`;
             }
 
