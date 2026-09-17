@@ -444,6 +444,9 @@ function rGiocatori() {
         const quotVal = p.quot || 0;
         const sqText = p.sq ? p.sq : '—';
         const chevron = isExpanded ? '▾' : '▸';
+        const isOwned = p.owners && p.owners.length > 0;
+        const qtClass = isOwned ? 'qt-badge qt-owned' : 'qt-badge';
+        const unitClass = isOwned ? 'qt-unit qt-unit-owned' : 'qt-unit';
 
         html += `<tr class="${rowClass}" data-role="${p.ruolo}" data-player-name="${p.nome}" aria-expanded="${isExpanded}" role="button" tabindex="0">
             <td class="col-role"><span class="rb rb-${(p.ruolo || '').toLowerCase()}">${p.ruolo || '?'}</span></td>
@@ -452,7 +455,7 @@ function rGiocatori() {
                 <span class="hide-sm sq-text">${sqText}</span>
                 <span class="show-sm sq-badge">${getTeamAbbr(p.sq)}</span>
             </td>
-            <td class="n col-quot"><span class="qt-badge">${quotVal} <small class="qt-unit">cr</small></span></td>
+            <td class="n col-quot"><span class="${qtClass}">${quotVal} <small class="${unitClass}">cr</small></span></td>
             <td class="col-possesso">${ownerHtml}</td>
             <td class="col-chevron"><span class="row-chevron">${chevron}</span></td>
         </tr>`;
