@@ -365,7 +365,7 @@ function openPicker(anchor) {
     if (!el) return;
     const r = anchor.getBoundingClientRect();
     el.style.top = (r.bottom + 8) + 'px';
-    el.style.left = Math.max(10, Math.min(window.innerWidth - 250, r.left - 80)) + 'px';
+    el.style.left = Math.max(10, Math.min(window.innerWidth - 300, r.left - 80)) + 'px';
     el.classList.add('show');
     pickerOpen = true;
 }

@@ -1054,6 +1054,15 @@ tr.expand-row > td {
         width: 100%;
         padding: 12px 8px 80px;
     }
+    
+    .picker {
+        width: 270px;
+        padding: 8px;
+        gap: 4px;
+    }
+    .pk-btn {
+        padding: 8px 2px;
+    }
 
     .box, .box.full-box {
         border: none;
