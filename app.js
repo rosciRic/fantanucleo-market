@@ -315,7 +315,12 @@ function updateNav() {
     const label = $('gnLabel');
     const isCurrent = S.gn === S.giornate[S.giornate.length - 1];
     if (label) {
-        label.innerHTML = `G${S.gn} ${isCurrent ? '<span class="gn-cur-badge">LIVE</span>' : ''}<span class="gn-arrow">▾</span>`;
+        label.innerHTML = `G${S.gn} ${isCurrent ? '<span class="gn-cur-badge">●</span>' : ''}<span class="gn-arrow">▾</span>`;
+        if (isCurrent) {
+            label.classList.remove('gn-historic');
+        } else {
+            label.classList.add('gn-historic');
+        }
     }
 
     // Show/hide historic banner
