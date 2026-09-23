@@ -122,7 +122,8 @@ function csv(t) {
 
 async function get(p) {
     try {
-        const r = await fetch(p);
+        const url = p + (p.includes('?') ? '&' : '?') + 't=' + Date.now();
+        const r = await fetch(url, { cache: 'no-store' });
         return r.ok ? csv(await r.text()) : [];
     } catch {
         return [];
@@ -834,7 +835,7 @@ async function init() {
     setup();
     let giornate = [];
     try {
-        const r = await fetch('manifest.json');
+        const r = await fetch('manifest.json?t=' + Date.now(), { cache: 'no-store' });
         if (r.ok) giornate = (await r.json()).giornate || [];
     } catch {}
     if (!giornate.length) return;
