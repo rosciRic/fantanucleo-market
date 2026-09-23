@@ -25,7 +25,7 @@ from pathlib import Path
 import openpyxl
 
 DOWNLOADS_DIR = Path.home() / "Downloads"
-FANTA_DIR = DOWNLOADS_DIR / "fantanucleo_26_27"
+FANTA_DIR = Path.home() / "Projects" / "fantanucleo_26_27"
 
 
 def extract_giornata_number(filepath: Path, wb: openpyxl.Workbook) -> int:
