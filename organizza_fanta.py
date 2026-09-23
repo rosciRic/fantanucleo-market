@@ -377,7 +377,7 @@ def push_to_github(giornata_num):
         if res.returncode == 0:
             print("  ✓ Sito live aggiornato: https://rosciric.github.io/fantanucleo-market/\n")
         else:
-            print("  ✓ Codice sincronizzato con GitHub\n")
+            print(f"  ⚠️ Push non riuscito (verificare connessione):\n{res.stderr.strip()}\n")
     except Exception as e:
         print(f"  ⚠️ Avviso push GitHub: {e}\n")
 
