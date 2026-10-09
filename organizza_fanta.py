@@ -370,9 +370,9 @@ def convert(xlsx_path: Path):
 def push_to_github(giornata_num):
     """Esegue git add, commit e push su GitHub per aggiornare GitHub Pages."""
     try:
-        print(f"🚀 Pubblicazione Giornata {giornata_num} su GitHub Pages...")
+        print(f"🚀 Pubblicazione modifiche su GitHub Pages (G{giornata_num})...")
         subprocess.run(['git', 'add', '.'], cwd=str(FANTA_DIR), check=True)
-        subprocess.run(['git', 'commit', '-m', f"Aggiornamento Giornata {giornata_num}"], cwd=str(FANTA_DIR), check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(['git', 'commit', '-m', f"Aggiornamento dati Giornata {giornata_num}"], cwd=str(FANTA_DIR), check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         res = subprocess.run(['git', 'push'], cwd=str(FANTA_DIR), check=False, capture_output=True, text=True)
         if res.returncode == 0:
             print("  ✓ Sito live aggiornato: https://rosciric.github.io/fantanucleo-market/\n")
@@ -411,6 +411,48 @@ def open_dashboard():
     webbrowser.open(f'http://localhost:{PORT}')
 
 
+def update_latest_quotazioni(candidates_quot):
+    q_file = candidates_quot[0]
+    max_num = 0
+    for d in FANTA_DIR.glob("giornata_*"):
+        if d.is_dir():
+            m = re.search(r'giornata_(\d+)', d.name)
+            if m:
+                max_num = max(max_num, int(m.group(1)))
+                
+    if max_num == 0:
+        print("❌ Nessuna giornata presente per aggiornare le quotazioni.")
+        return
+        
+    out = FANTA_DIR / f"giornata_{max_num}"
+    print(f"🔄 Aggiornamento Listone/Quotazioni per Giornata {max_num}...")
+    
+    # Rimuovi vecchio file excel quotazioni
+    for old_q in out.glob("Quotazioni*.xlsx"):
+        try:
+            old_q.unlink()
+        except Exception:
+            pass
+            
+    # Sposta il nuovo
+    dest_q = out / f"Quotazioni_{max_num}ª_2026_2027.xlsx"
+    try:
+        shutil.move(str(q_file), str(dest_q))
+        print(f"  → Nuovo file listone spostato in {dest_q.name}")
+    except Exception as e:
+        print(f"Errore spostamento file: {e}")
+        return
+        
+    # Rigenera CSV
+    quotazioni = parse_listone_file(out, max_num)
+    if quotazioni:
+        write_csv(out / f"quotazioni_{max_num}.csv", ["Nome", "Squadra", "Ruolo", "QtA", "QtI", "Diff"], quotazioni)
+        print(f"  → quotazioni_{max_num}.csv aggiornato ({len(quotazioni)} calciatori)")
+        
+    update_manifest()
+    push_to_github(max_num)
+
+
 def main():
     FANTA_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -434,9 +476,10 @@ def main():
 
     if not candidates_ris:
         if candidates_quot:
-            print("ℹ️ Trovato file Quotazioni nei Download. In attesa del file Risultati per elaborare la nuova giornata.")
+            print("ℹ️ Trovato file Quotazioni nei Download ma nessun Risultato. Procedo all'aggiornamento del solo listone...")
+            update_latest_quotazioni(candidates_quot)
         else:
-            print("Nessun nuovo file Risultati.xlsx trovato nei Download.")
+            print("Nessun nuovo file Risultati.xlsx o Quotazioni.xlsx trovato nei Download.")
         open_dashboard()
         return
 
