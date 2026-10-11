@@ -154,7 +154,7 @@ body {
 .gn-nav {
     display: flex;
     align-items: center;
-    background: #18181b;
+    background: #243759;
     border: 1px solid var(--line);
     border-radius: 8px;
     overflow: hidden;
@@ -565,8 +565,8 @@ tbody tr {
     display: none;
     padding: 14px 20px;
     margin-bottom: 20px;
-    background: #18181b;
-    border: 1px solid #27272a;
+    background: #243759;
+    border: 1px solid var(--line);
     border-radius: 12px;
     font-size: 14px;
     color: var(--tx);
@@ -770,7 +770,7 @@ tbody tr {
     display: flex;
     align-items: center;
     gap: 6px;
-    background: #18181b;
+    background: #243759;
     border: 1px solid var(--line);
     padding: 4px 8px;
     border-radius: 10px;
@@ -791,8 +791,8 @@ tbody tr {
     font-size: 12px;
     font-weight: 700;
     color: var(--tx);
-    background: #202024;
-    border: 1px solid #3f3f46;
+    background: var(--surface);
+    border: 1px solid var(--chip-border);
     padding: 6px 12px;
     border-radius: 8px;
     white-space: nowrap;
@@ -833,7 +833,7 @@ tbody tr {
     }
 }
 .sort-select-mobile {
-    background: #18181b;
+    background: #243759;
     color: var(--tx);
     border: 1px solid var(--line);
     border-radius: 8px;
@@ -1183,7 +1183,7 @@ tr.expand-row > td {
     }
     #tGiocatori tbody tr.player-row:active {
         transform: scale(0.99);
-        background: #202024;
+        background: var(--card-hover);
     }
     #tGiocatori td:nth-child(1) { grid-area: role; align-self: center; border: none; padding: 0 4px 0 0; }
     #tGiocatori td:nth-child(2) { grid-area: nome; font-weight: 700; border: none; padding: 0; font-size: 14px; color: #ffffff; }
