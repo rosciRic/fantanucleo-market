@@ -1,25 +1,36 @@
-/* Fantanucleo 26/27 — Modern Responsive Design System */
+/* Fantanucleo 26/27 — Rich Midnight / Slate Design System */
 
 :root {
-    --bg:          #080c14;
-    --bg-alt:      #0f172a;
-    --card:        #111827;
-    --card-hover:  #1e293b;
-    --line:        rgba(255, 255, 255, 0.08);
-    --line-accent: rgba(99, 102, 241, 0.3);
+    --bg:          #1e2d4a; /* Navy acciaio brillante ben visibile */
+    --bg-alt:      #16233b; /* Cassetto aperto e sfondo secondario */
+    --card:        #16233b; /* Card e tabelle base */
+    --card-hover:  #243759; /* Hover su righe e card */
+    --surface:     #243759; /* Box statistiche ed elementi elevati */
+    --chip-bg:     #243759;
+    --chip-border: #364e79;
+    --line:        #2b3e63; /* Bordi e divisori */
+    --line-accent: rgba(56, 189, 248, 0.25);
     
     --tx:          #f8fafc;
     --tx2:         #94a3b8;
     --tx3:         #64748b;
     
-    --accent:      #6366f1;
-    --accent-glow: rgba(99, 102, 241, 0.25);
+    /* 1. Colore Accent & CTA (Cyan / Sky) */
+    --accent:       #0284c7;
+    --accent-light: #38bdf8;
+    --accent-glow:  rgba(56, 189, 248, 0.35);
     
-    /* Ruoli */
-    --p: #eab308;
-    --d: #22c55e;
-    --c: #3b82f6;
-    --a: #ef4444;
+    --header-bg:   rgba(30, 45, 74, 0.94);
+    --badge-market-bg: #243759;
+    --badge-market-border: #364e79;
+    --badge-market-tx: #f8fafc;
+    --pill-sort-active-border: #38bdf8;
+
+    /* 2. Badge Ruoli Calibrati WCAG (Contrasto >= 4.5:1 con testo bianco) */
+    --p: #d97706; /* Ambra intenso / Ocra */
+    --d: #16a34a; /* Verde smeraldo profondo */
+    --c: #2563eb; /* Royal blue vivido */
+    --a: #e11d48; /* Cremisi / Rose intenso */
 }
 
 *, *::before, *::after {
@@ -49,11 +60,11 @@ body {
     gap: 16px;
     height: 60px;
     padding: 0 24px;
-    background: rgba(17, 24, 39, 0.85);
+    background: var(--header-bg);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border-bottom: 1px solid var(--line);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .logo {
@@ -74,24 +85,28 @@ body {
     -webkit-text-fill-color: transparent;
 }
 .dim {
-    font-weight: 600;
-    font-size: 12px;
-    color: var(--accent);
-    background: rgba(99, 102, 241, 0.15);
+    font-weight: 700;
+    font-size: 11px;
+    color: #ffffff;
+    -webkit-text-fill-color: #ffffff;
+    background: var(--chip-bg);
+    border: 1px solid var(--chip-border);
     padding: 2px 7px;
-    border-radius: 12px;
-    margin-left: 2px;
+    border-radius: 6px;
+    margin-left: 3px;
+    display: inline-block;
 }
 .badge-market {
     font-weight: 800;
     font-size: 11px;
     letter-spacing: 0.6px;
-    color: #38bdf8;
-    background: rgba(56, 189, 248, 0.15);
-    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: var(--badge-market-tx);
+    -webkit-text-fill-color: var(--badge-market-tx);
+    background: var(--badge-market-bg);
+    border: 1px solid var(--badge-market-border);
     padding: 2px 7px;
     border-radius: 6px;
-    margin: 0 4px;
+    margin: 0 3px;
     text-transform: uppercase;
     vertical-align: middle;
     display: inline-block;
@@ -101,7 +116,7 @@ body {
 .tabs {
     display: flex;
     gap: 4px;
-    background: rgba(15, 23, 42, 0.6);
+    background: var(--card);
     padding: 4px;
     border-radius: 10px;
     border: 1px solid var(--line);
@@ -125,19 +140,21 @@ body {
     background: rgba(255, 255, 255, 0.05);
 }
 .t.active {
-    background: var(--accent);
+    background: var(--chip-bg);
     color: #ffffff;
-    box-shadow: 0 4px 12px var(--accent-glow);
+    border: 1px solid var(--accent);
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.18);
 }
 .tab-icon {
     font-size: 14px;
 }
 
+
 /* Giornata Selector */
 .gn-nav {
     display: flex;
     align-items: center;
-    background: rgba(15, 23, 42, 0.6);
+    background: #18181b;
     border: 1px solid var(--line);
     border-radius: 8px;
     overflow: hidden;
@@ -219,8 +236,8 @@ body {
 .gs-trigger:hover {
     background: rgba(255, 255, 255, 0.08);
     color: var(--tx);
-    border-color: var(--accent);
-    box-shadow: 0 0 14px rgba(56, 189, 248, 0.18);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.06);
 }
 .gs-icon {
     font-size: 14px;
@@ -245,8 +262,8 @@ body {
 .picker {
     position: fixed;
     z-index: 200;
-    background: rgba(15, 23, 42, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: var(--card);
+    border: 1px solid var(--line);
     border-radius: 16px;
     padding: 12px;
     display: grid;
@@ -277,15 +294,15 @@ body {
     text-align: center;
 }
 .pk-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.08);
     color: var(--tx);
     border-color: var(--line);
 }
 .pk-btn.cur {
-    background: var(--accent);
+    background: var(--surface);
     color: #ffffff;
-    border-color: var(--accent);
-    box-shadow: 0 2px 8px var(--accent-glow);
+    border-color: var(--accent-light);
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
 }
 
 
@@ -396,7 +413,7 @@ main {
 .pills {
     display: flex;
     gap: 4px;
-    background: rgba(15, 23, 42, 0.6);
+    background: var(--card);
     padding: 3px;
     border-radius: 8px;
     border: 1px solid var(--line);
@@ -428,11 +445,11 @@ main {
     color: #ffffff;
     border-color: transparent;
 }
-.pill[data-r=""].on { background: rgba(255, 255, 255, 0.14); color: var(--tx); }
-.pill.pp.on { background: var(--p); color: #000; }
-.pill.pd.on { background: var(--d); color: #fff; }
-.pill.pc.on { background: var(--c); color: #fff; }
-.pill.pa.on { background: var(--a); color: #fff; }
+.pill[data-r=""].on { background: rgba(255, 255, 255, 0.14); color: #ffffff; }
+.pill.pp.on { background: var(--p); color: #ffffff; }
+.pill.pd.on { background: var(--d); color: #ffffff; }
+.pill.pc.on { background: var(--c); color: #ffffff; }
+.pill.pa.on { background: var(--a); color: #ffffff; }
 
 .cnt {
     font-size: 13px;
@@ -465,7 +482,7 @@ th {
     position: sticky;
     top: 0;
     z-index: 10;
-    background: #0f172a;
+    background: var(--bg-alt);
     padding: 14px 16px;
     font-size: 11px;
     font-weight: 800;
@@ -499,6 +516,7 @@ td {
 tbody tr:last-child td {
     border-bottom: none;
 }
+tbody tr {
     transition: background 0.12s ease;
 }
 
@@ -508,16 +526,19 @@ tbody tr:last-child td {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
     font-size: 11px;
     font-weight: 800;
+    letter-spacing: 0;
+    flex-shrink: 0;
+    color: #ffffff;
 }
-.rb-p { background: rgba(234, 179, 8, 0.2); color: var(--p); border: 1px solid rgba(234, 179, 8, 0.3); }
-.rb-d { background: rgba(34, 197, 94, 0.2); color: var(--d); border: 1px solid rgba(34, 197, 94, 0.3); }
-.rb-c { background: rgba(59, 130, 246, 0.2); color: var(--c); border: 1px solid rgba(59, 130, 246, 0.3); }
-.rb-a { background: rgba(239, 68, 68, 0.2); color: var(--a); border: 1px solid rgba(239, 68, 68, 0.3); }
+.rb-p { background: var(--p); color: #ffffff; }
+.rb-d { background: var(--d); color: #ffffff; }
+.rb-c { background: var(--c); color: #ffffff; }
+.rb-a { background: var(--a); color: #ffffff; }
 
 .fvm-val {
     font-weight: 700;
@@ -525,7 +546,7 @@ tbody tr:last-child td {
 }
 .qt {
     font-weight: 800;
-    color: #4ade80;
+    color: #10b981;
 }
 
 .empty-state {
@@ -544,11 +565,11 @@ tbody tr:last-child td {
     display: none;
     padding: 14px 20px;
     margin-bottom: 20px;
-    background: rgba(99, 102, 241, 0.1);
-    border: 1px solid rgba(99, 102, 241, 0.25);
+    background: #18181b;
+    border: 1px solid #27272a;
     border-radius: 12px;
     font-size: 14px;
-    color: #a5b4fc;
+    color: var(--tx);
 }
 
 .cambi-bar-wrap {
@@ -620,9 +641,16 @@ tbody tr:last-child td {
         font-size: 10px;
         padding: 1px 5px;
         margin: 0 2px;
+        color: var(--badge-market-tx);
+        -webkit-text-fill-color: var(--badge-market-tx);
     }
     .dim {
-        display: none;
+        display: inline-block;
+        font-size: 10px;
+        padding: 1px 5px;
+        margin-left: 2px;
+        color: #ffffff;
+        -webkit-text-fill-color: #ffffff;
     }
 
     .tabs {
@@ -631,7 +659,7 @@ tbody tr:last-child td {
         justify-content: space-around;
         gap: 2px;
         padding: 3px;
-        background: rgba(15, 23, 42, 0.8);
+        background: var(--card);
     }
     .t {
         flex: 1;
@@ -742,7 +770,7 @@ tbody tr:last-child td {
     display: flex;
     align-items: center;
     gap: 6px;
-    background: rgba(15, 23, 42, 0.6);
+    background: #18181b;
     border: 1px solid var(--line);
     padding: 4px 8px;
     border-radius: 10px;
@@ -762,9 +790,9 @@ tbody tr:last-child td {
     justify-self: end;
     font-size: 12px;
     font-weight: 700;
-    color: #818cf8;
-    background: rgba(99, 102, 241, 0.15);
-    border: 1px solid rgba(99, 102, 241, 0.3);
+    color: var(--tx);
+    background: #202024;
+    border: 1px solid #3f3f46;
     padding: 6px 12px;
     border-radius: 8px;
     white-space: nowrap;
@@ -805,7 +833,7 @@ tbody tr:last-child td {
     }
 }
 .sort-select-mobile {
-    background: rgba(15, 23, 42, 0.9);
+    background: #18181b;
     color: var(--tx);
     border: 1px solid var(--line);
     border-radius: 8px;
@@ -823,26 +851,26 @@ tbody tr:last-child td {
 }
 
 .status-pills {
-    background: rgba(15, 23, 42, 0.8);
+    background: var(--card);
     border: 1px solid var(--line);
 }
 
 .pill-gio-s.st-svinc.on {
-    background: rgba(34, 197, 94, 0.2);
-    color: #4ade80;
-    border-color: rgba(34, 197, 94, 0.4);
+    background: rgba(16, 185, 129, 0.16);
+    color: #34d399;
+    border-color: rgba(16, 185, 129, 0.35);
 }
 
 .pill-gio-s.st-poss.on {
-    background: rgba(239, 68, 68, 0.2);
+    background: rgba(239, 68, 68, 0.16);
     color: #f87171;
-    border-color: rgba(239, 68, 68, 0.4);
+    border-color: rgba(239, 68, 68, 0.35);
 }
 
 .pill-gio-s.st-multi.on {
-    background: rgba(168, 85, 247, 0.2);
-    color: #c084fc;
-    border-color: rgba(168, 85, 247, 0.4);
+    background: var(--surface);
+    color: var(--tx);
+    border-color: var(--line);
 }
 
 /* ── COMPONENTE POSSESSO & VALORI TABELLA ── */
@@ -896,13 +924,14 @@ tbody tr:last-child td {
 
 /* Stato 1: Svincolato */
 .pos-status.free {
-    color: #4ade80;
-    background: rgba(34, 197, 94, 0.1);
-    border: 1px solid rgba(34, 197, 94, 0.2);
+    color: #34d399;
+    background: rgba(16, 185, 129, 0.14);
+    border: 1px solid rgba(16, 185, 129, 0.3);
     padding: 3px 8px;
     border-radius: 6px;
     font-size: 11px;
     font-weight: 700;
+    letter-spacing: 0.2px;
 }
 .pos-dot {
     font-size: 8px;
@@ -910,32 +939,48 @@ tbody tr:last-child td {
 
 /* Stato 2: 1 Squadra */
 .pos-status.single {
-    color: #cbd5e1;
-    font-weight: 500;
+    color: var(--tx);
+    font-weight: 600;
+}
+.pos-status.single .pos-team {
+    color: var(--tx);
+    background: var(--chip-bg);
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-size: 11px;
+    border: 1px solid var(--chip-border);
 }
 
 /* Stato 3: 2+ Squadre (Multi-girone) */
 .pos-status.multi {
-    color: #e9d5ff;
-    font-weight: 500;
+    color: var(--tx);
+    font-weight: 600;
+}
+.pos-status.multi .pos-team {
+    color: var(--tx);
+    background: var(--chip-bg);
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-size: 11px;
+    border: 1px solid var(--chip-border);
 }
 
 .pos-badge {
-    background: rgba(168, 85, 247, 0.2);
-    color: #c084fc;
-    border: 1px solid rgba(168, 85, 247, 0.35);
+    background: var(--chip-bg);
+    color: var(--tx);
+    border: 1px solid var(--chip-border);
     font-size: 10px;
     font-weight: 800;
-    padding: 2px 6px;
-    border-radius: 5px;
+    padding: 2px 5px;
+    border-radius: 4px;
     font-variant-numeric: tabular-nums;
     flex-shrink: 0;
 }
 
 .pos-more {
-    color: #c084fc;
+    color: #a1a1aa;
     font-weight: 700;
-    font-size: 11px;
+    font-size: 10px;
 }
 
 .pos-team {
@@ -954,10 +999,10 @@ td.n, th.n, .qt, .cnt, .ac-qt {
 }
 
 /* ── ROLE ACCENT BORDERS (Scansione Visiva Immediata) ── */
-tr[data-role="P"] { border-left: 3px solid #eab308 !important; }
-tr[data-role="D"] { border-left: 3px solid #3b82f6 !important; }
-tr[data-role="C"] { border-left: 3px solid #10b981 !important; }
-tr[data-role="A"] { border-left: 3px solid #ef4444 !important; }
+tr[data-role="P"] { border-left: 3px solid var(--p) !important; }
+tr[data-role="D"] { border-left: 3px solid var(--d) !important; }
+tr[data-role="C"] { border-left: 3px solid var(--c) !important; }
+tr[data-role="A"] { border-left: 3px solid var(--a) !important; }
 
 /* ── INTERACTIVE ROWS & INLINE ACCORDION ── */
 tbody tr.player-row[data-player-name] {
@@ -972,7 +1017,7 @@ tbody tr.player-row.active-expanded {
 tr.expand-row > td {
     padding: 0 !important;
     border-bottom: 1px solid var(--line);
-    background: rgba(15, 23, 42, 0.7);
+    background: var(--bg-alt);
 }
 
 .inline-player-detail {
@@ -990,8 +1035,8 @@ tr.expand-row > td {
 }
 
 .pm-stat {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    background: var(--surface);
+    border: 1px solid var(--line);
     border-radius: 10px;
     padding: 10px 12px;
     display: flex;
@@ -1026,9 +1071,9 @@ tr.expand-row > td {
 }
 
 .pm-owner-chip {
-    background: rgba(168, 85, 247, 0.12);
-    border: 1px solid rgba(168, 85, 247, 0.3);
-    color: #e9d5ff;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--tx);
     font-size: 13px;
     font-weight: 600;
     padding: 6px 12px;
@@ -1126,17 +1171,26 @@ tr.expand-row > td {
         grid-template-areas:
             "role nome quot"
             "role squadra possesso";
-        padding: 12px 14px;
-        border-radius: 12px;
+        padding: 10px 12px;
+        border-radius: 10px;
         background: var(--card);
         border: 1px solid var(--line);
         align-items: center;
         gap: 2px 8px;
+        content-visibility: auto;
+        contain-intrinsic-size: 58px;
+        transition: transform 0.1s ease, background 0.12s ease;
+    }
+    #tGiocatori tbody tr.player-row:active {
+        transform: scale(0.99);
+        background: #202024;
     }
     #tGiocatori td:nth-child(1) { grid-area: role; align-self: center; border: none; padding: 0 4px 0 0; }
-    #tGiocatori td:nth-child(2) { grid-area: nome; font-weight: 600; border: none; padding: 0; font-size: 14px; }
+    #tGiocatori td:nth-child(2) { grid-area: nome; font-weight: 700; border: none; padding: 0; font-size: 14px; color: #ffffff; }
+    #tGiocatori td:nth-child(3) { grid-area: squadra; border: none; padding: 0; }
     #tGiocatori td:nth-child(4) { grid-area: quot; text-align: right; border: none; padding: 0; }
     #tGiocatori td:nth-child(5) { grid-area: possesso; text-align: right; border: none; padding: 0; }
+    #tGiocatori td:nth-child(6) { display: none; }
 
 
     #tGiocatori tbody tr.expand-row {
@@ -1144,7 +1198,7 @@ tr.expand-row > td {
         padding: 0;
         border: 1px solid var(--line);
         border-radius: 10px;
-        background: rgba(15, 23, 42, 0.9);
+        background: var(--bg-alt);
         margin-top: -4px;
     }
     #tGiocatori tbody tr.expand-row > td {
@@ -1241,33 +1295,33 @@ tr.expand-row > td {
     transition: color 0.15s ease, background 0.15s ease, transform 0.15s ease;
 }
 tbody tr.player-row:hover .row-chevron {
-    color: var(--accent);
-    background: rgba(99, 102, 241, 0.12);
+    color: var(--accent-light);
+    background: rgba(56, 189, 248, 0.12);
 }
 tbody tr.active-expanded .row-chevron {
-    color: var(--accent);
-    background: rgba(99, 102, 241, 0.18);
+    color: var(--accent-light);
+    background: rgba(56, 189, 248, 0.2);
     transform: rotate(0deg);
 }
 
 /* ── CAMBI BAR COLORS (Urgenza visiva) ── */
 .cambi-track.cambi-green .cambi-fill {
-    background: #22c55e;
+    background: #10b981;
 }
 .cambi-track.cambi-yellow .cambi-fill {
-    background: #eab308;
+    background: #d97706;
 }
 .cambi-track.cambi-red .cambi-fill {
-    background: #ef4444;
+    background: #f43f5e;
 }
 .cambi-track.cambi-green {
-    background: rgba(34, 197, 94, 0.12);
+    background: rgba(16, 185, 129, 0.14);
 }
 .cambi-track.cambi-yellow {
-    background: rgba(234, 179, 8, 0.12);
+    background: rgba(217, 119, 6, 0.14);
 }
 .cambi-track.cambi-red {
-    background: rgba(239, 68, 68, 0.12);
+    background: rgba(244, 63, 94, 0.14);
 }
 
 /* ── GIORNATA CORRENTE BADGE ── */
@@ -1368,8 +1422,8 @@ tbody tr.active-expanded .row-chevron {
     border-color: var(--line-accent);
 }
 .rose-card-open {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 1px var(--accent-glow), 0 8px 24px rgba(0, 0, 0, 0.25);
+    border-color: var(--accent-light);
+    box-shadow: 0 0 16px rgba(56, 189, 248, 0.2), 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 .rose-card-header {
@@ -1442,7 +1496,7 @@ tbody tr.active-expanded .row-chevron {
 .rose-pts {
     font-size: 13px;
     font-weight: 600;
-    color: var(--accent);
+    color: var(--tx2);
     white-space: nowrap;
 }
 .rose-pts small {
@@ -1478,6 +1532,7 @@ tbody tr.active-expanded .row-chevron {
 .rose-card-body {
     border-top: 1px solid var(--line);
     padding: 0;
+    background: var(--bg-alt);
 }
 
 .rose-meta-row {
@@ -1485,7 +1540,7 @@ tbody tr.active-expanded .row-chevron {
     flex-wrap: wrap;
     gap: 12px;
     padding: 12px 16px;
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--card);
     border-bottom: 1px solid var(--line);
 }
 
@@ -1497,8 +1552,8 @@ tbody tr.active-expanded .row-chevron {
     color: var(--tx);
     font-weight: 600;
 }
-.rose-meta-item.delta-pos strong { color: #22c55e; }
-.rose-meta-item.delta-neg strong { color: #ef4444; }
+.rose-meta-item.delta-pos strong { color: #10b981; }
+.rose-meta-item.delta-neg strong { color: #f43f5e; }
 
 /* Rose table */
 .rose-table {
@@ -1543,8 +1598,8 @@ tbody tr.active-expanded .row-chevron {
 }
 
 /* Delta colors */
-.delta-pos { color: #22c55e; font-weight: 600; }
-.delta-neg { color: #ef4444; font-weight: 600; }
+.delta-pos { color: #10b981; font-weight: 600; }
+.delta-neg { color: #f43f5e; font-weight: 600; }
 
 /* Fuori lista */
 .rose-row-fl {
@@ -1644,6 +1699,140 @@ tbody tr.active-expanded .row-chevron {
         font-size: 13px;
         font-weight: 600;
     }
+}
+
+/* ── CLEAN SPORTS PRO ENHANCEMENTS ── */
+
+/* Desktop Player Rows Virtual Scrolling & Cursor */
+#tGiocatori tbody tr.player-row {
+    content-visibility: auto;
+    contain-intrinsic-size: 48px;
+    cursor: pointer;
+}
+#tGiocatori tbody tr.player-row:hover {
+    background: var(--card-hover);
+}
+
+/* Sort Bar */
+.sort-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+}
+.sort-group::-webkit-scrollbar {
+    display: none;
+}
+.sort-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--tx3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-right: 2px;
+    white-space: nowrap;
+}
+.pill-sort {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--tx2);
+    font: 600 12px 'Inter', sans-serif;
+    padding: 5px 11px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+.pill-sort:hover {
+    background: var(--chip-bg);
+    border-color: var(--chip-border);
+    color: var(--tx);
+}
+.pill-sort.on {
+    background: var(--chip-bg);
+    color: #ffffff;
+    border-color: var(--pill-sort-active-border);
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+    font-weight: 700;
+}
+
+/* Floating Back To Top Button */
+.back-to-top {
+    position: fixed;
+    bottom: 24px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--surface);
+    color: #ffffff;
+    border: 1px solid var(--chip-border);
+    font-size: 18px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(12px);
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.back-to-top.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+.back-to-top:hover {
+    background: var(--chip-bg);
+    border-color: var(--line-accent);
+    transform: translateY(-2px);
+}
+.back-to-top:active {
+    transform: scale(0.92);
+}
+
+/* Rose Tactical Role Section Headers */
+.rose-dept-section {
+    margin-top: 14px;
+}
+.rose-dept-section:first-child {
+    margin-top: 6px;
+}
+.rose-dept-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    background: var(--surface);
+    border-left: 3px solid var(--line);
+    border-radius: 4px;
+    margin-bottom: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.rose-dept-header.dept-p { border-left-color: var(--p); }
+.rose-dept-header.dept-d { border-left-color: var(--d); }
+.rose-dept-header.dept-c { border-left-color: var(--c); }
+.rose-dept-header.dept-a { border-left-color: var(--a); }
+
+.rose-dept-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--tx);
+}
+.rose-dept-count {
+    color: var(--tx3);
+    font-size: 11px;
+    font-weight: 600;
 }
 
 

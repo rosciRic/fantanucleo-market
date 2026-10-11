@@ -14,6 +14,7 @@ const S = {
     fR_gio: '',
     fS_gio: '',
     fQ_gio: '',
+    sortGio: 'default',
 
     // Stato riga espansa (Accordion inline)
     expandedPlayerName: null,
@@ -43,9 +44,9 @@ function renderPossesso(owners = []) {
         return `<span class="pos-status free"><span class="pos-dot">🟢</span> Libero</span>`;
     }
     if (count === 1) {
-        return `<span class="pos-status single"><span class="pos-badge">1x</span><span class="pos-team hide-sm">${owners[0]}</span></span>`;
+        return `<span class="pos-status single"><span class="pos-team">${owners[0]}</span></span>`;
     }
-    return `<span class="pos-status multi"><span class="pos-badge">${count}x</span><span class="pos-team hide-sm">${owners[0]} <span class="pos-more">+${count - 1}</span></span></span>`;
+    return `<span class="pos-status multi"><span class="pos-team">${owners[0]} <small class="pos-badge">+${count - 1}</small></span></span>`;
 }
 
 // ── RENDER ACCORDION DETTAGLIO CALCIATORE INLINE ──
@@ -415,8 +416,18 @@ function rGiocatori() {
         );
     }
 
-    // Ordinamento fisso di default: Ruolo (P → D → C → A), poi Quotazione (decrescente), poi Nome (A-Z)
+    // Ordinamento Dinamico
     list.sort((a, b) => {
+        if (S.sortGio === 'quot_desc') {
+            const qa = a.quot || 0;
+            const qb = b.quot || 0;
+            if (qa !== qb) return qb - qa;
+            return a.nome.localeCompare(b.nome);
+        }
+        if (S.sortGio === 'nome_asc') {
+            return a.nome.localeCompare(b.nome);
+        }
+        // Default: Ruolo (P → D → C → A), poi Quotazione (decrescente), poi Nome (A-Z)
         const ra = ROLE_ORDER[a.ruolo] || 99;
         const rb = ROLE_ORDER[b.ruolo] || 99;
         if (ra !== rb) return ra - rb;
@@ -568,21 +579,6 @@ function rRose() {
             </div>`;
 
         if (isExpanded) {
-            // Sort players: by role order, then by quotazione desc
-            const sortedPlayers = [...players].sort((a, b) => {
-                const ra = ROLE_ORDER[a.Ruolo] || 99;
-                const rb = ROLE_ORDER[b.Ruolo] || 99;
-                if (ra !== rb) return ra - rb;
-                // Sort by QtA desc
-                const rawA = (a.Calciatore || a.Nome || '').trim().replace(/\s*\*\s*$/, '').toLowerCase();
-                const rawB = (b.Calciatore || b.Nome || '').trim().replace(/\s*\*\s*$/, '').toLowerCase();
-                const qaInfo = S.quotMap[rawA];
-                const qbInfo = S.quotMap[rawB];
-                const qa = qaInfo ? qaInfo.qta : (+a.Costo || 0);
-                const qb = qbInfo ? qbInfo.qta : (+b.Costo || 0);
-                return qb - qa;
-            });
-
             html += `<div class="rose-card-body">
                 <div class="rose-meta-row">
                     <span class="rose-meta-item">Valore rosa: <strong>${totalQta} cr</strong></span>`;
@@ -591,44 +587,74 @@ function rRose() {
                     <span class="rose-meta-item">Cambi: <strong>${cambiVal}</strong></span>
                     <span class="rose-meta-item">Crediti: <strong>${creditiVal} cr</strong></span>`;
             }
-            html += `
-                </div>
-                <table class="rose-table">
-                    <thead><tr>
-                        <th>R</th>
-                        <th>Calciatore</th>
-                        <th>Squadra</th>
-                        <th class="n">Valore</th>
-                    </tr></thead>
-                    <tbody>`;
+            html += `</div>`;
 
-            for (const p of sortedPlayers) {
-                const rawName = (p.Calciatore || p.Nome || '').trim();
-                const isFuoriLista = isAsterisk(rawName);
-                const pName = rawName.replace(/\s*\*\s*$/, '');
-                const pKey = pName.toLowerCase();
-                const qInfo = S.quotMap[pKey];
-                const costo = +p.Costo || 0;
-                const squadra = qInfo ? qInfo.sq : (p.Squadra || '—');
-                const ruolo = p.Ruolo || '?';
-                const qta = qInfo ? qInfo.qta : costo;
+            const DEPTS = [
+                { role: 'P', name: 'Portieri', emoji: '🧤', cls: 'dept-p' },
+                { role: 'D', name: 'Difensori', emoji: '🛡️', cls: 'dept-d' },
+                { role: 'C', name: 'Centrocampisti', emoji: '⚙️', cls: 'dept-c' },
+                { role: 'A', name: 'Attaccanti', emoji: '⚡', cls: 'dept-a' }
+            ];
 
-                const nameHtml = isFuoriLista
-                    ? `<span class="rose-pname-fl">${pName} <span class="fl-tag">FL</span></span>`
-                    : pName;
+            for (const dept of DEPTS) {
+                const deptPlayers = players.filter(p => (p.Ruolo || '').toUpperCase() === dept.role);
+                if (deptPlayers.length === 0) continue;
 
-                html += `<tr class="${isFuoriLista ? 'rose-row-fl' : ''}">
-                    <td><span class="rb rb-${ruolo.toLowerCase()}">${ruolo}</span></td>
-                    <td class="rose-pname">${nameHtml}</td>
-                    <td class="rose-sq">
-                        <span class="hide-sm">${squadra}</span>
-                        <span class="show-sm">${getTeamAbbr(squadra)}</span>
-                    </td>
-                    <td class="n">${qta} <small class="qt-unit">cr</small></td>
-                </tr>`;
+                // Sort by QtA desc
+                deptPlayers.sort((a, b) => {
+                    const rawA = (a.Calciatore || a.Nome || '').trim().replace(/\s*\*\s*$/, '').toLowerCase();
+                    const rawB = (b.Calciatore || b.Nome || '').trim().replace(/\s*\*\s*$/, '').toLowerCase();
+                    const qaInfo = S.quotMap[rawA];
+                    const qbInfo = S.quotMap[rawB];
+                    const qa = qaInfo ? qaInfo.qta : (+a.Costo || 0);
+                    const qb = qbInfo ? qbInfo.qta : (+b.Costo || 0);
+                    return qb - qa;
+                });
+
+                html += `<div class="rose-dept-section">
+                    <div class="rose-dept-header ${dept.cls}">
+                        <span class="rose-dept-title">${dept.emoji} ${dept.name}</span>
+                        <span class="rose-dept-count">${deptPlayers.length}</span>
+                    </div>
+                    <table class="rose-table">
+                        <thead><tr>
+                            <th>R</th>
+                            <th>Calciatore</th>
+                            <th>Squadra</th>
+                            <th class="n">Valore</th>
+                        </tr></thead>
+                        <tbody>`;
+
+                for (const p of deptPlayers) {
+                    const rawName = (p.Calciatore || p.Nome || '').trim();
+                    const isFuoriLista = isAsterisk(rawName);
+                    const pName = rawName.replace(/\s*\*\s*$/, '');
+                    const pKey = pName.toLowerCase();
+                    const qInfo = S.quotMap[pKey];
+                    const costo = +p.Costo || 0;
+                    const squadra = qInfo ? qInfo.sq : (p.Squadra || '—');
+                    const ruolo = p.Ruolo || '?';
+                    const qta = qInfo ? qInfo.qta : costo;
+
+                    const nameHtml = isFuoriLista
+                        ? `<span class="rose-pname-fl">${pName} <span class="fl-tag">FL</span></span>`
+                        : pName;
+
+                    html += `<tr class="${isFuoriLista ? 'rose-row-fl' : ''}">
+                        <td><span class="rb rb-${ruolo.toLowerCase()}">${ruolo}</span></td>
+                        <td class="rose-pname">${nameHtml}</td>
+                        <td class="rose-sq">
+                            <span class="hide-sm">${squadra}</span>
+                            <span class="show-sm">${getTeamAbbr(squadra)}</span>
+                        </td>
+                        <td class="n">${qta} <small class="qt-unit">cr</small></td>
+                    </tr>`;
+                }
+
+                html += `</tbody></table></div>`;
             }
 
-            html += `</tbody></table></div>`;
+            html += `</div>`; // rose-card-body
         }
 
         html += `</div>`;
@@ -817,15 +843,42 @@ function setup() {
         })
     );
 
+    // Database Giocatori — Pills ordinamento rapido
+    document.querySelectorAll('.pill-sort').forEach(btn =>
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.pill-sort').forEach(x => x.classList.remove('on'));
+            btn.classList.add('on');
+            S.sortGio = btn.dataset.sort;
+            rGiocatori();
+        })
+    );
+
+    // Pulsante Flottante Torna Su
+    const backToTopBtn = $('btnBackToTop');
+    if (backToTopBtn) {
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 280) {
+                backToTopBtn.classList.add('visible');
+            } else {
+                backToTopBtn.classList.remove('visible');
+            }
+        }, { passive: true });
+        backToTopBtn.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
+
     // Database Giocatori — Reset filtri
     $('btnResetGio')?.addEventListener('click', () => {
         S.fR_gio = '';
         S.fS_gio = '';
         S.fQ_gio = '';
+        S.sortGio = 'default';
         if ($('qGio')) $('qGio').value = '';
         if ($('searchClearGio')) $('searchClearGio').style.display = 'none';
         document.querySelectorAll('.pill-gio-r').forEach(x => x.classList.toggle('on', x.dataset.r === ''));
         document.querySelectorAll('.pill-gio-s').forEach(x => x.classList.toggle('on', x.dataset.st === ''));
+        document.querySelectorAll('.pill-sort').forEach(x => x.classList.toggle('on', x.dataset.sort === 'default'));
         rGiocatori();
     });
 }

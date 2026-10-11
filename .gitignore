@@ -10,3 +10,6 @@ Asta/
 .DS_Store
 Thumbs.db
 **/.~lock.*
+docs/
+.superpowers/
+

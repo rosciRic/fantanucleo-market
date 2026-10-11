@@ -7,14 +7,16 @@
     <meta name="description" content="Ricerca Calciatori, Possesso Squadre e Crediti — Fantanucleo Market 26/27">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=2">
+    <link rel="stylesheet" href="style.css?v=17">
 </head>
 <body>
 
 <header class="bar">
     <div class="logo">
         <span class="logo-icon">⚽</span>
-        <span class="logo-text">Fantanucleo <span class="badge-market">MARKET</span> <span class="dim">26/27</span></span>
+        <span class="logo-text">Fantanucleo</span>
+        <span class="badge-market">MARKET</span>
+        <span class="dim">26/27</span>
     </div>
 
     <nav class="tabs">
@@ -73,7 +75,14 @@
                     <button class="pill-gio-s pill st-poss" data-st="posseduto">Posseduti</button>
                 </div>
 
-                <button id="btnResetGio" class="btn-reset-filters" style="display:none;" aria-label="Reset filtri" title="Reset filtri">✕ Reset filtri</button>
+                <button id="btnResetGio" class="btn-reset-filters" style="display:none;" aria-label="Reset filtri" title="Reset filtri">✕ Reset</button>
+            </div>
+
+            <div class="sort-group">
+                <span class="sort-label">Ordina:</span>
+                <button class="pill-sort on" data-sort="default">Ruolo</button>
+                <button class="pill-sort" data-sort="quot_desc">Quotazione ↓</button>
+                <button class="pill-sort" data-sort="nome_asc">Nome A-Z</button>
             </div>
             
             <span class="cnt-badge" id="cntGio"></span>
@@ -125,6 +134,8 @@
 
 </main>
 
-<script src="app.js?v=4"></script>
+<button id="btnBackToTop" class="back-to-top" aria-label="Torna in cima" title="Torna in cima">↑</button>
+
+<script src="app.js?v=17"></script>
 </body>
 </html>
