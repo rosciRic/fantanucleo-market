@@ -12,4 +12,6 @@ Thumbs.db
 **/.~lock.*
 docs/
 .superpowers/
+__pycache__/
+*.pyc
 

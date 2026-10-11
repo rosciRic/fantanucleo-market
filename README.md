@@ -1,70 +1,112 @@
 # ⚽ Fantanucleo Market 26/27 — Web Dashboard
 
-> Web Dashboard moderna, ultra-veloce e responsive per la gestione e la consultazione live della lega di Fantacalcio **Fantanucleo** (Stagione 2026/2027).
+> Web Dashboard ultra-veloce, responsive e offline-first per la consultazione live e storica della lega di Fantacalcio **Fantanucleo** (Stagione 2026/2027).
+
+🌐 **Sito Live (GitHub Pages)**: [https://rosciric.github.io/fantanucleo-market/](https://rosciric.github.io/fantanucleo-market/)
 
 ---
 
 ## 🌟 Caratteristiche Principali
 
-- **🔍 Database Giocatori & Possesso Multi-Girone**:
-  - Indicatore numerico di possesso ultra-compatto (`1x`, `2x +1`) per identificare immediatamente quanti e quali fantallenatori possiedono un calciatore.
-  - **Card Modal Dettaglio Calciatore**: Cliccando su qualsiasi riga della tabella si apre una card interattiva in stile *dark glass* con l'elenco completo delle fantasquadre proprietarie, ruolo e quotazione.
-- **📋 Svincolati Ordinati per Quotazione**:
-  - Consultazione immediata dei calciatori liberi sul mercato, ordinati in automatico per **Quotazione decrescente (`cr`)**.
-  - Filtri rapidi per ruolo (`P`, `D`, `C`, `A`) e ricerca istantanea in tempo reale (per calciatore o squadra Serie A).
+- **🔍 Database Giocatori & Possesso (530+ Calciatori)**:
+  - Indicatore immediato: 🟢 **Libero** (svincolato) oppure **Preso** (fantasquadra o `2x +1` se posseduto in più gironi).
+  - **Dettaglio Inline**: Cliccando su qualsiasi riga si apre il cassetto con statistiche complete (FVM, Fantamedia, Media Voto, Partite) o elenco di tutte le fantasquadre proprietarie.
+  - **Filtri & Ordinamento Rapido**: Filtro istantaneo per Ruolo (P, D, C, A), per Stato (Svincolati / Posseduti) e chip di ordinamento (Ruolo, Quotazione ↓, Nome A-Z).
+- **📋 Rose degli Avversari (18 Squadre)**:
+  - Classifica generale con punti e valore complessivo rosa (`cr`).
+  - **Visualizzazione Tattica per Reparto**: I 23 calciatori di ogni rosa sono divisi ordinatamente in Portieri 🧤, Difensori 🛡️, Centrocampisti ⚙️ e Attaccanti ⚡, ordinati per valore decrescente.
 - **💰 Crediti Residui & Cambi**:
-  - Monitoraggio visuale dei cambi effettuati/rimanenti con barra di avanzamento e conteggio dei crediti residui per ciascuna fantasquadra.
-- **📱 Design Responsive PC & Mobile**:
-  - Layout adattivo che si converte automaticamente in **card compatte su dispositivi mobile (< 640px)** e tabelle ad alta densità informativa su PC desktop.
-  - Tokens visivi per ruolo: Portiere (ambra), Difensore (blu), Centrocampista (verde), Attaccante (rosso).
+  - Tabella cambi rimasti con barra di avanzamento colorata a soglie visive e crediti residui.
+- **⚡ Architettura JSON-First & Prestazioni 60 FPS**:
+  - Dati pre-aggregati a monte in un singolo file compatto `data_N.json` per giornata (~110 KB).
+  - Virtualizzazione mobile con `content-visibility: auto` e pulsante flottante "Torna in Cima".
 
 ---
 
-## 🛠️ Tecnologie Utilizzate
+## 🔄 Guida Operativa: Come Aggiornare i Dati
 
-- **Frontend**: HTML5 Semantico, CSS3 (Design System Vanilla CSS, HSL tokens, Glassmorphism, Tabular Nums), JavaScript ES6+ Vanilla.
-- **Data Engine**: Python 3 con `openpyxl` per l'estrazione automatizzata, la pulizia dei dati e la conversione dai report Excel ufficiali di Fantacalcio.it.
-- **Hosting & Deploy**: GitHub Pages (Deploy automatico).
+La gestione e la pubblicazione dei dati sono totalmente automatizzate. Ecco le operazioni passo-passo per ogni scenario:
+
+### 1. Aggiornamento Settimanale Standard (Nuova Giornata)
+
+Al termine delle partite di campionato e del calcolo dei risultati:
+
+1. **Scarica i 2 file Excel da Fantacalcio.it** (verranno salvati nella tua cartella `Downloads`):
+   - `Risultati_Nª_2026_2027.xlsx`
+   - `Quotazioni_Fantacalcio_Nª.xlsx`
+2. **Apri il terminale ed esegui**:
+   ```bash
+   cd ~/Projects/fantanucleo_26_27
+   python3 organizza_fanta.py
+   ```
+   *Oppure lancia lo script direttamente dalla cartella Download:*
+   ```bash
+   ./aggiorna_fanta.sh
+   ```
+3. **Cosa avviene in automatico**:
+   - Riconosce il numero di giornata `N`.
+   - Genera il file unificato `giornata_N/data_N.json` (e i CSV di archivio).
+   - Rimuove i file Excel dai `Downloads` e li archivia dentro `giornata_N/`.
+   - Aggiorna `manifest.json`.
+   - Esegue `git add`, `git commit` e `git push` su GitHub.
+   - Avvia il server locale su `http://localhost:8080` e apre il browser per la verifica immediata.
+   - Entro ~60 secondi il sito live su GitHub Pages sarà aggiornato.
 
 ---
 
-## 🔄 Workflow di Aggiornamento Settimanale
+### 2. Aggiornamento Infrasettimanale (Solo Listone Quotazioni)
 
-La gestione dei dati è totalmente automatizzata tramite lo script Python `organizza_fanta.py`:
+Se a metà settimana cambiano le quotazioni di mercato e non ci sono nuove giornate da calcolare:
 
-```
-┌────────────────────────────────┐
-│   Download Excel da            │
-│   Fantacalcio.it               │
-└───────────────┬────────────────┘
-                │
-                ▼
-┌────────────────────────────────┐
-│   Esecuzione Automatica:       │
-│   python3 organizza_fanta.py   │
-└───────────────┬────────────────┘
-                │
-                ▼
-┌────────────────────────────────┐
-│ 1. Estrazione CSV Giornata     │
-│ 2. Archiviazione `.xlsx`       │
-│ 3. Aggiornamento `manifest`    │
-│ 4. Push su GitHub & Deploy     │
-└────────────────────────────────┘
-```
-
-### Comandi da Terminale per Aggiornare la Dashboard:
-
-1. **Scarica i nuovi file nei Download** (`Risultati_Nª.xlsx` e `Quotazioni_Fantacalcio_Nª.xlsx`).
-2. **Esegui lo script di conversione e pubblicazione**:
+1. **Scarica solo l'Excel delle quotazioni** nei `Downloads`:
+   - `Quotazioni_Fantacalcio_*.xlsx`
+2. **Esegui lo script**:
    ```bash
    python3 organizza_fanta.py
    ```
-3. **Sito Live**:
-   - **[https://rosciric.github.io/fantanucleo-market/](https://rosciric.github.io/fantanucleo-market/)**
+3. **Cosa avviene in automatico**:
+   - Lo script rileva che è presente solo il file quotazioni.
+   - Aggiorna e rigenera al volo il JSON dell'ultima giornata senza alterare punteggi e cambi.
+   - Esegue il push automatico su GitHub Pages.
+
+---
+
+### 3. Test & Sviluppo in Locale
+
+Per visualizzare e testare il sito in locale senza inviare modifiche su GitHub:
+
+```bash
+# Avvia il server web locale
+python3 -m http.server 8000
+
+# Apri nel browser
+http://localhost:8000
+```
+
+---
+
+## 📁 Struttura della Repository
+
+```
+fantanucleo_26_27/
+├── index.html            # Markup semantico dell'applicazione (3 tab)
+├── style.css             # Design System Dark Steel Navy (#1e2d4a), responsive
+├── app.js                # Logica frontend vanilla (caricamento JSON, filtri, accordion)
+├── manifest.json         # Registro JSON delle giornate disponibili ([1, 2, 3, ...])
+├── organizza_fanta.py    # Script master di parsing Excel, archiviazione e auto-deploy
+├── export_json.py        # Generatore JSON unificato pre-calcolato (data_N.json)
+├── aggiorna_fanta.sh     # Wrapper bash eseguibile da cartella Downloads
+└── giornata_N/           # Dati per ogni giornata di campionato
+    ├── data_N.json       # JSON unificato consumato dall'app web (~110 KB)
+    ├── rose_N.csv
+    ├── svincolati_N.csv
+    ├── quotazioni_N.csv
+    ├── cambi_N.csv
+    └── classifiche_campionato_N.csv
+```
 
 ---
 
 ## 📄 Licenza
 
-Questo progetto è distribuito sotto licenza MIT.
+Progetto distribuito sotto licenza MIT.

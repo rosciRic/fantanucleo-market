@@ -337,6 +337,16 @@ def convert(xlsx_path: Path):
     cambi = parse_cambi(ris_sheet)
     write_csv(out / f"cambi_{num}.csv", ["Fantasquadra", "CambiRimasti", "CreditiRimasti", "CambiExtra"], cambi)
 
+    # Esportazione JSON unificato per la dashboard web
+    try:
+        from export_json import generate_giornata_json
+        g_data = generate_giornata_json(out, num)
+        with open(out / f"data_{num}.json", "w", encoding="utf-8") as f_json:
+            json.dump(g_data, f_json, ensure_ascii=False, separators=(',', ':'))
+        print(f"  → data_{num}.json generato con successo ({len(g_data['giocatori'])} calciatori)")
+    except Exception as e:
+        print(f"  ⚠️ Avviso esportazione JSON: {e}")
+
     # ── Organizzazione e rimozione completa da Downloads ──
     wb.close()
     dest_ris = out / f"Risultati_{num}ª_2026_2027.xlsx"
@@ -448,6 +458,14 @@ def update_latest_quotazioni(candidates_quot):
     if quotazioni:
         write_csv(out / f"quotazioni_{max_num}.csv", ["Nome", "Squadra", "Ruolo", "QtA", "QtI", "Diff"], quotazioni)
         print(f"  → quotazioni_{max_num}.csv aggiornato ({len(quotazioni)} calciatori)")
+        try:
+            from export_json import generate_giornata_json
+            g_data = generate_giornata_json(out, max_num)
+            with open(out / f"data_{max_num}.json", "w", encoding="utf-8") as f_json:
+                json.dump(g_data, f_json, ensure_ascii=False, separators=(',', ':'))
+            print(f"  → data_{max_num}.json aggiornato ({len(g_data['giocatori'])} calciatori)")
+        except Exception as e:
+            print(f"  ⚠️ Avviso aggiornamento JSON: {e}")
         
     update_manifest()
     push_to_github(max_num)

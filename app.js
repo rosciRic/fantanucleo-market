@@ -1,14 +1,13 @@
-/* Fantanucleo 26/27 — app.js */
+/* Fantanucleo 26/27 — app.js (Architettura Semplificata JSON-First) */
 
 const S = {
     gn: null,
     giornate: [],
-    standings: [],   // classifica generale ordinata
-    rose: {},        // { fantasquadra: [giocatori] }
-    sv: [],
+    standings: [],
+    rose: {},
     cambi: [],
-    quotMap: {},     // { nome_calciatore: { qta, qti, diff } }
-    dbGiocatori: [], // listone unificato calciatori con possesso
+    dbGiocatori: [],
+    counts: {},
 
     // Filtri Database Giocatori
     fR_gio: '',
@@ -16,19 +15,28 @@ const S = {
     fQ_gio: '',
     sortGio: 'default',
 
-    // Stato riga espansa (Accordion inline)
+    // Stato righe espanse (Accordion inline)
     expandedPlayerName: null,
     expandedRoseTeam: null
 };
 
+const $ = id => document.getElementById(id);
 const ROLE_ORDER = { P: 1, D: 2, C: 3, A: 4 };
 
-// Helper per identificare ed escludere i calciatori "fuori lista" (contrassegnati da *)
-function isAsterisk(str) {
-    return !!(str && String(str).includes('*'));
+// Abbreviazioni Squadre Serie A per Mobile
+const TEAM_ABBR = {
+    'Atalanta': 'ATA', 'Bologna': 'BOL', 'Cagliari': 'CAG', 'Como': 'COM',
+    'Empoli': 'EMP', 'Fiorentina': 'FIO', 'Genoa': 'GEN', 'Inter': 'INT',
+    'Juventus': 'JUV', 'Lazio': 'LAZ', 'Lecce': 'LEC', 'Milan': 'MIL',
+    'Monza': 'MON', 'Napoli': 'NAP', 'Parma': 'PAR', 'Roma': 'ROM',
+    'Torino': 'TOR', 'Udinese': 'UDI', 'Venezia': 'VEN', 'Verona': 'VER'
+};
+
+function getTeamAbbr(sq) {
+    if (!sq || sq === '—') return '—';
+    return TEAM_ABBR[sq] || sq.slice(0, 3).toUpperCase();
 }
 
-// Helper Debounce per ricerca fluida a 60fps
 function debounce(fn, delay = 120) {
     let timer;
     return (...args) => {
@@ -37,7 +45,7 @@ function debounce(fn, delay = 120) {
     };
 }
 
-// ── COMPONENTE POSSESSO (3 STATI COMPATTI) ──
+// ── COMPONENTE POSSESSO (3 Stati compatti) ───────────────────────────
 function renderPossesso(owners = []) {
     const count = owners.length;
     if (count === 0) {
@@ -49,13 +57,12 @@ function renderPossesso(owners = []) {
     return `<span class="pos-status multi"><span class="pos-team">${owners[0]} <small class="pos-badge">+${count - 1}</small></span></span>`;
 }
 
-// ── RENDER ACCORDION DETTAGLIO CALCIATORE INLINE ──
+// ── RENDER ACCORDION DETTAGLIO CALCIATORE INLINE ──────────────────────
 function renderExpandedRow(p) {
     const count = p.owners ? p.owners.length : 0;
     const isFree = count === 0;
 
     if (isFree) {
-        // PER GLI SVINCOLATI: mostra la griglia con tutte le statistiche ed il tag libero
         return `<tr class="expand-row">
             <td colspan="6">
                 <div class="inline-player-detail">
@@ -94,271 +101,124 @@ function renderExpandedRow(p) {
             </td>
         </tr>`;
     } else {
-        // PER I POSSEDUTI: mostra elenco squadre possessori + nota esplicativa
         const ownersHtml = p.owners.map(team => `<div class="pm-owner-chip">⚽ ${team}</div>`).join('');
         return `<tr class="expand-row">
             <td colspan="6">
                 <div class="inline-player-detail">
+                    <div class="pm-info-grid">
+                        <div class="pm-stat">
+                            <span class="pm-stat-lbl">Quotazione</span>
+                            <span class="pm-stat-val">${p.quot || 0} cr</span>
+                        </div>
+                        <div class="pm-stat">
+                            <span class="pm-stat-lbl">FVM</span>
+                            <span class="pm-stat-val">${p.fvm || '—'}</span>
+                        </div>
+                        <div class="pm-stat">
+                            <span class="pm-stat-lbl">Partite (PG)</span>
+                            <span class="pm-stat-val">${p.pg !== undefined && p.pg !== null ? p.pg : '—'}</span>
+                        </div>
+                        <div class="pm-stat">
+                            <span class="pm-stat-lbl">Possessori</span>
+                            <span class="pm-stat-val">${count} fantasquadre</span>
+                        </div>
+                        <div class="pm-stat">
+                            <span class="pm-stat-lbl">Stato</span>
+                            <span class="pm-stat-val">In Rosa</span>
+                        </div>
+                    </div>
                     <div class="pm-owners-section">
-                        <span class="pm-section-lbl">Posseduto da ${count} ${count === 1 ? 'squadra' : 'squadre'}:</span>
+                        <div class="pm-section-title">Fantasquadre proprietarie (${count}):</div>
                         <div class="pm-owners-list">${ownersHtml}</div>
                     </div>
-                    <div class="pm-info-note">ℹ️ Statistiche dettagliate (FVM, FM, MV, PG) disponibili solo per i calciatori svincolati.</div>
                 </div>
             </td>
         </tr>`;
     }
 }
 
-// ── CSV Parser ───────────────────────────────────────────────────────
-function csv(t) {
-    const lines = t.trim().split('\n');
-    if (lines.length < 2) return [];
-    const hdr = lines[0].split(',').map(s => s.trim());
-    return lines.slice(1).map(row => {
-        const v = row.split(',').map(s => s.trim());
-        return Object.fromEntries(hdr.map((k, i) => [k, v[i] ?? '']));
-    });
-}
-
-async function get(p) {
-    try {
-        const url = p + (p.includes('?') ? '&' : '?') + 't=' + Date.now();
-        const r = await fetch(url, { cache: 'no-store' });
-        return r.ok ? csv(await r.text()) : [];
-    } catch {
-        return [];
-    }
-}
-
-const $ = id => document.getElementById(id);
-
-// ── Abbreviazione Squadre Serie A ───────────────────────────────────
-const TEAM_ABBR = {
-    'Atalanta': 'ATA',
-    'Bologna': 'BOL',
-    'Cagliari': 'CAG',
-    'Como': 'COM',
-    'Empoli': 'EMP',
-    'Fiorentina': 'FIO',
-    'Frosinone': 'FRO',
-    'Genoa': 'GEN',
-    'Inter': 'INT',
-    'Juventus': 'JUV',
-    'Lazio': 'LAZ',
-    'Lecce': 'LEC',
-    'Milan': 'MIL',
-    'Monza': 'MON',
-    'Napoli': 'NAP',
-    'Parma': 'PAR',
-    'Roma': 'ROM',
-    'Sassuolo': 'SAS',
-    'Torino': 'TOR',
-    'Udinese': 'UDI',
-    'Venezia': 'VEN',
-    'Verona': 'VER',
-    'Hellas Verona': 'VER'
-};
-
-function getTeamAbbr(sq) {
-    if (!sq) return '—';
-    return TEAM_ABBR[sq] || sq.substring(0, 3).toUpperCase();
-}
-
-// ── Data Loader ──────────────────────────────────────────────────────
+// ── CARICAMENTO DATI GIORNATA (Singolo JSON) ──────────────────────────
 async function load(n) {
     S.gn = n;
+    S.expandedPlayerName = null;
     updateNav();
-    const b = `giornata_${n}`;
-    const [camp, rose, sv, cambi, quot] = await Promise.all([
-        get(`${b}/classifiche_campionato_${n}.csv`),
-        get(`${b}/rose_${n}.csv`),
-        get(`${b}/svincolati_${n}.csv`),
-        get(`${b}/cambi_${n}.csv`),
-        get(`${b}/quotazioni_${n}.csv`)
-    ]);
 
-    // Classifica generale ordinata per posizione
-    S.standings = camp
-        .filter(r => r.Tipo === 'Generale')
-        .map(r => ({ ...r, Punti: +r.Punti || 0, Posizione: +r.Posizione || 99 }))
-        .sort((a, b) => a.Posizione - b.Posizione);
+    try {
+        const res = await fetch(`giornata_${n}/data_${n}.json?t=${Date.now()}`, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
 
-    // Mappa Quotazioni Attuali dal Listone Ufficiale (ESCLUDENDO fuori lista *)
-    S.quotMap = {};
-    for (const q of quot) {
-        if (isAsterisk(q.Nome)) continue;
-        const cleanName = (q.Nome || '').trim();
-        const nomeKey = cleanName.toLowerCase();
-        S.quotMap[nomeKey] = {
-            nome: cleanName,
-            sq: q.Squadra || '',
-            ruolo: q.Ruolo || '',
-            qta: +q.QtA || 0,
-            qti: +q.QtI || 0,
-            diff: +q.Diff || 0,
-            fvm: +q.FVM || 0
-        };
+        S.standings = data.standings || [];
+        S.cambi = data.cambi || [];
+        S.rose = data.rose || {};
+        S.dbGiocatori = data.giocatori || [];
+        S.counts = data.counts || {};
+
+        updateCounts();
+        render();
+    } catch (err) {
+        console.error(`Errore caricamento Giornata ${n}:`, err);
     }
-
-    // Rose indicizzate per squadra (ESCLUDENDO fuori lista *)
-    S.rose = {};
-    S.roseAll = {};  // Include anche fuori lista per tab Rose
-    for (const r of rose) {
-        (S.roseAll[r.Fantasquadra] ??= []).push(r);
-        if (isAsterisk(r.Calciatore) || isAsterisk(r.Nome)) continue;
-        (S.rose[r.Fantasquadra] ??= []).push(r);
-    }
-
-    // Svincolati con tipi numerici (ESCLUDENDO fuori lista *)
-    S.sv = sv
-        .filter(r => !isAsterisk(r.Nome) && !isAsterisk(r.Calciatore))
-        .map(r => ({
-            ...r,
-            PG: +r.PG || 0,
-            MV: +r.MV || 0,
-            FM: +r.FM || 0,
-            FVM: +r.FVM || 0,
-            Quotazione: +r.Quotazione || 0
-        }));
-
-    // Cambi con tipi numerici
-    S.cambi = cambi.map(r => ({
-        ...r,
-        CambiRimasti: +r.CambiRimasti || 0,
-        CreditiRimasti: +r.CreditiRimasti || 0
-    }));
-
-    // ── Costruzione Database Unificato Calciatori e Possesso ──
-    const dbMap = {};
-
-    // 1. Inserisci tutti i calciatori dal listone ufficiale quotazioni (escludendo *)
-    for (const q of quot) {
-        if (isAsterisk(q.Nome)) continue;
-        const cleanName = (q.Nome || '').trim();
-        if (!cleanName) continue;
-        const key = cleanName.toLowerCase();
-        dbMap[key] = {
-            nome: cleanName,
-            ruolo: q.Ruolo || '',
-            sq: q.Squadra || '',
-            fvm: +q.FVM || 0,
-            quot: +q.QtA || +q.Quotazione || 0,
-            owners: [],
-            isSvincolato: false
-        };
-    }
-
-    // 2. Mappa i possessori dalle rose (escludendo *)
-    for (const [fsq, giocatori] of Object.entries(S.rose)) {
-        for (const g of giocatori) {
-            const rawName = g.Calciatore || g.Nome || '';
-            if (isAsterisk(rawName)) continue;
-            const pName = rawName.trim();
-            if (!pName) continue;
-            const key = pName.toLowerCase();
-            if (!dbMap[key]) {
-                const qInfo = S.quotMap[key] || {};
-                dbMap[key] = {
-                    nome: pName,
-                    ruolo: g.Ruolo || qInfo.ruolo || '',
-                    sq: g.Squadra || qInfo.sq || '',
-                    fvm: qInfo.fvm || 0,
-                    quot: +g.Costo || qInfo.qta || 0,
-                    owners: [],
-                    isSvincolato: false
-                };
-            }
-            if (!dbMap[key].owners.includes(fsq)) {
-                dbMap[key].owners.push(fsq);
-            }
-        }
-    }
-
-    // 3. Marca gli svincolati (escludendo *)
-    for (const svItem of S.sv) {
-        const rawName = svItem.Nome || svItem.Calciatore || '';
-        if (isAsterisk(rawName)) continue;
-        const pName = rawName.trim();
-        if (!pName) continue;
-        const key = pName.toLowerCase();
-        if (!dbMap[key]) {
-            dbMap[key] = {
-                nome: pName,
-                ruolo: svItem.Ruolo || '',
-                sq: svItem.Squadra || '',
-                fvm: svItem.FVM || 0,
-                quot: svItem.Quotazione || 0,
-                fm: svItem.FM || 0,
-                mv: svItem.MV || 0,
-                pg: svItem.PG || 0,
-                owners: [],
-                isSvincolato: true
-            };
-        } else {
-            dbMap[key].isSvincolato = true;
-            if (svItem.FVM) dbMap[key].fvm = svItem.FVM;
-            if (svItem.Quotazione) dbMap[key].quot = svItem.Quotazione;
-            if (svItem.Squadra) dbMap[key].sq = svItem.Squadra;
-            if (svItem.FM) dbMap[key].fm = svItem.FM;
-            if (svItem.MV) dbMap[key].mv = svItem.MV;
-            if (svItem.PG) dbMap[key].pg = svItem.PG;
-        }
-    }
-
-    S.dbGiocatori = Object.values(dbMap);
-
-    updateCounts();
-    render();
 }
 
-// ── Giornata Navigator & Picker ──────────────────────────────────────
+// ── NAVIGATORE GIORNATE & PICKER ─────────────────────────────────────
 function updateNav() {
+    const cur = S.giornate[S.giornate.length - 1];
+    const isCur = S.gn === cur;
+    const isFirst = S.gn === S.giornate[0];
+    const isLast = S.gn === cur;
+
     const label = $('gnLabel');
-    const isCurrent = S.gn === S.giornate[S.giornate.length - 1];
     if (label) {
-        label.innerHTML = `G${S.gn} ${isCurrent ? '<span class="gn-cur-badge">●</span>' : ''}<span class="gn-arrow">▾</span>`;
-        if (isCurrent) {
+        label.innerHTML = `G${S.gn} ${isCur ? '<span class="gn-cur-badge">●</span>' : ''}<span class="gn-arrow">▾</span>`;
+        if (isCur) {
             label.classList.remove('gn-historic');
         } else {
             label.classList.add('gn-historic');
         }
     }
 
-    // Show/hide historic banner
-    const banner = $('historicBanner');
-    if (banner) {
-        if (isCurrent) {
-            banner.style.display = 'none';
-        } else {
-            banner.style.display = 'flex';
-            banner.innerHTML = `⏳ Stai visualizzando la <strong>Giornata ${S.gn}</strong> — <button class="go-current-btn" id="goCurrentBtn">Vai alla corrente (G${S.giornate[S.giornate.length - 1]})</button>`;
-            $('goCurrentBtn')?.addEventListener('click', () => load(S.giornate[S.giornate.length - 1]));
-        }
-    }
-
-    const prevBtn = $('gnPrev');
-    if (prevBtn) prevBtn.disabled = S.gn <= S.giornate[0];
-
-    const nextBtn = $('gnNext');
-    if (nextBtn) nextBtn.disabled = S.gn >= S.giornate[S.giornate.length - 1];
+    const prev = $('gnPrev');
+    const next = $('gnNext');
+    if (prev) prev.disabled = isFirst;
+    if (next) next.disabled = isLast;
 
     document.querySelectorAll('.pk-btn').forEach(b => {
         b.classList.toggle('cur', +b.dataset.n === S.gn);
-        // Mark the latest matchday in picker
-        b.classList.toggle('latest', +b.dataset.n === S.giornate[S.giornate.length - 1]);
+        b.classList.toggle('latest', +b.dataset.n === cur);
     });
+
+    const banner = $('historicBanner');
+    if (banner) {
+        if (!isCur) {
+            banner.style.display = 'flex';
+            banner.innerHTML = `⏳ Stai visualizzando la <strong>Giornata ${S.gn}</strong> — <button class="go-current-btn" id="goCurrentBtn">Vai alla corrente (G${cur})</button>`;
+            $('goCurrentBtn')?.addEventListener('click', () => load(cur));
+        } else {
+            banner.style.display = 'none';
+        }
+    }
 }
 
 function buildPicker() {
     const el = $('picker');
     if (!el) return;
-    el.innerHTML = S.giornate.map(n =>
-        `<button class="pk-btn" data-n="${n}">G${n}</button>`
-    ).join('');
-    el.querySelectorAll('.pk-btn').forEach(b =>
-        b.addEventListener('click', () => { load(+b.dataset.n); closePicker(); })
-    );
+    const cur = S.giornate[S.giornate.length - 1];
+    el.innerHTML = S.giornate.map(n => {
+        const isCurrent = n === cur;
+        const isSelected = n === S.gn;
+        let cls = 'pk-btn';
+        if (isSelected) cls += ' cur';
+        if (isCurrent) cls += ' latest';
+        return `<button class="${cls}" data-n="${n}">G${n}</button>`;
+    }).join('');
+
+    el.querySelectorAll('.pk-btn').forEach(b => {
+        b.addEventListener('click', () => {
+            load(+b.dataset.n);
+            closePicker();
+        });
+    });
 }
 
 let pickerOpen = false;
@@ -366,53 +226,48 @@ function openPicker(anchor) {
     const el = $('picker');
     if (!el) return;
     const r = anchor.getBoundingClientRect();
-    el.style.top = (r.bottom + 8) + 'px';
-    el.style.left = Math.max(10, Math.min(window.innerWidth - 300, r.left - 80)) + 'px';
+    el.style.top = `${r.bottom + 6}px`;
+    el.style.right = `${window.innerWidth - r.right}px`;
     el.classList.add('show');
     pickerOpen = true;
 }
+
 function closePicker() {
-    const el = $('picker');
-    if (el) el.classList.remove('show');
+    $('picker')?.classList.remove('show');
     pickerOpen = false;
 }
 
-// ── Count badges update ──────────────────────────────────────────────
 function updateCounts() {
-    const countsGio = { '': S.dbGiocatori.length, P: 0, D: 0, C: 0, A: 0 };
-    for (const item of S.dbGiocatori) {
-        if (countsGio[item.ruolo] !== undefined) countsGio[item.ruolo]++;
-    }
-
-    if ($('cnt-gio-all')) $('cnt-gio-all').textContent = `(${countsGio['']})`;
-    if ($('cnt-gio-p')) $('cnt-gio-p').textContent = `(${countsGio.P})`;
-    if ($('cnt-gio-d')) $('cnt-gio-d').textContent = `(${countsGio.D})`;
-    if ($('cnt-gio-c')) $('cnt-gio-c').textContent = `(${countsGio.C})`;
-    if ($('cnt-gio-a')) $('cnt-gio-a').textContent = `(${countsGio.A})`;
+    const c = S.counts || {};
+    if ($('cnt-gio-all')) $('cnt-gio-all').textContent = `(${c[''] ?? S.dbGiocatori.length})`;
+    if ($('cnt-gio-p')) $('cnt-gio-p').textContent = `(${c.P ?? 0})`;
+    if ($('cnt-gio-d')) $('cnt-gio-d').textContent = `(${c.D ?? 0})`;
+    if ($('cnt-gio-c')) $('cnt-gio-c').textContent = `(${c.C ?? 0})`;
+    if ($('cnt-gio-a')) $('cnt-gio-a').textContent = `(${c.A ?? 0})`;
 }
 
-// ── Render Giocatori & Possesso ──────────────────────────────────────
+// ── RENDER GIOCATORI & POSSESSO ──────────────────────────────────────
 function rGiocatori() {
     let list = [...S.dbGiocatori];
 
     // Filtro Ruolo
     if (S.fR_gio) {
-        list = list.filter(p => p.ruolo === S.fR_gio);
+        list = list.filter(p => (p.ruolo || '').toUpperCase() === S.fR_gio);
     }
 
     // Filtro Stato Possesso
     if (S.fS_gio === 'svincolato') {
-        list = list.filter(p => p.isSvincolato || p.owners.length === 0);
+        list = list.filter(p => p.isSvincolato || !p.owners || p.owners.length === 0);
     } else if (S.fS_gio === 'posseduto') {
-        list = list.filter(p => p.owners.length > 0);
+        list = list.filter(p => p.owners && p.owners.length > 0);
     }
 
     // Filtro Ricerca
     if (S.fQ_gio) {
         const q = S.fQ_gio;
         list = list.filter(p =>
-            p.nome.toLowerCase().includes(q) ||
-            p.sq.toLowerCase().includes(q)
+            (p.nome || '').toLowerCase().includes(q) ||
+            (p.sq || '').toLowerCase().includes(q)
         );
     }
 
@@ -427,7 +282,7 @@ function rGiocatori() {
         if (S.sortGio === 'nome_asc') {
             return a.nome.localeCompare(b.nome);
         }
-        // Default: Ruolo (P → D → C → A), poi Quotazione (decrescente), poi Nome (A-Z)
+        // Default: Ruolo (P → D → C → A), poi Quotazione ↓, poi Nome A-Z
         const ra = ROLE_ORDER[a.ruolo] || 99;
         const rb = ROLE_ORDER[b.ruolo] || 99;
         if (ra !== rb) return ra - rb;
@@ -484,7 +339,7 @@ function rGiocatori() {
 
     tbody.innerHTML = html;
 
-    // Wire Click sulle righe per espandere/comprimere accordion inline
+    // Toggle accordion inline al click
     tbody.querySelectorAll('tr.player-row[data-player-name]').forEach(tr => {
         tr.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -498,28 +353,23 @@ function rGiocatori() {
     if ($('btnResetGio')) $('btnResetGio').style.display = isFilteredGio ? 'inline-flex' : 'none';
 }
 
-// ── Render Rose (Accordion per squadra, ordinate per classifica) ─────
+// ── RENDER ROSE (Accordion Tattico per Reparto) ──────────────────────
 function rRose() {
     const container = $('roseAccordion');
     const summaryEl = $('roseSummary');
     if (!container) return;
 
-    // Build standings lookup { Fantasquadra: { pos, pts } }
     const standingsMap = {};
     for (const s of S.standings) {
-        standingsMap[s.Fantasquadra] = { pos: s.Posizione, pts: s.Punti };
+        standingsMap[s.team] = { pos: s.pos, pts: s.pts };
     }
 
-    // Build cambi/crediti lookup
     const cambiMap = {};
     for (const c of S.cambi) {
-        cambiMap[c.Fantasquadra] = { cambi: c.CambiRimasti, crediti: c.CreditiRimasti };
+        cambiMap[c.team] = { cambi: c.cambi, crediti: c.crediti };
     }
 
-    // Get all team names from rose
-    const teamNames = Object.keys(S.roseAll);
-
-    // Sort by standings: teams in classifica first (by position), then others alphabetically
+    const teamNames = Object.keys(S.rose);
     teamNames.sort((a, b) => {
         const sa = standingsMap[a];
         const sb = standingsMap[b];
@@ -529,14 +379,20 @@ function rRose() {
         return a.localeCompare(b);
     });
 
-    // Summary bar
     if (summaryEl) {
         summaryEl.innerHTML = `<span class="rose-summary-text">📋 ${teamNames.length} squadre · Giornata ${S.gn}</span>`;
     }
 
+    const DEPTS = [
+        { role: 'P', name: 'Portieri', emoji: '🧤', cls: 'dept-p' },
+        { role: 'D', name: 'Difensori', emoji: '🛡️', cls: 'dept-d' },
+        { role: 'C', name: 'Centrocampisti', emoji: '⚙️', cls: 'dept-c' },
+        { role: 'A', name: 'Attaccanti', emoji: '⚡', cls: 'dept-a' }
+    ];
+
     let html = '';
     for (const team of teamNames) {
-        const players = S.roseAll[team] || [];
+        const players = S.rose[team] || [];
         const info = standingsMap[team];
         const ci = cambiMap[team];
         const pos = info ? info.pos : '—';
@@ -545,21 +401,11 @@ function rRose() {
         const creditiVal = ci ? ci.crediti : '—';
         const isExpanded = S.expandedRoseTeam === team;
 
-
-        // Total current quotazione
         let totalQta = 0;
         for (const p of players) {
-            const rawName = (p.Calciatore || p.Nome || '').trim();
-            const cleanName = rawName.replace(/\s*\*\s*$/, '');
-            const qInfo = S.quotMap[cleanName.toLowerCase()];
-            if (qInfo) {
-                totalQta += qInfo.qta;
-            } else {
-                totalQta += (+p.Costo || 0);
-            }
+            totalQta += (p.qta || p.costo || 0);
         }
 
-        // Position badge class
         let posClass = 'rose-pos';
         if (pos === 1) posClass += ' rose-pos-1';
         else if (pos === 2) posClass += ' rose-pos-2';
@@ -569,11 +415,11 @@ function rRose() {
             <div class="rose-card-header" data-team="${team}" role="button" tabindex="0" aria-expanded="${isExpanded}">
                 <div class="rose-header-left">
                     <span class="${posClass}">${pos}</span>
-                    <span class="rose-team-name">⚽ ${team}</span>
-                    <span class="rose-pts">${pts} <small>pt</small></span>
+                    <span class="rose-team-name">${team}</span>
+                    <span class="rose-badge-count">${players.length}</span>
                 </div>
                 <div class="rose-header-right">
-                    <span class="rose-total">Val. ${totalQta} <small>cr</small></span>
+                    <span class="rose-pts">${totalQta} <small>cr</small> · ${pts} <small>pt</small></span>
                     <span class="rose-chevron">${isExpanded ? '▾' : '▸'}</span>
                 </div>
             </div>`;
@@ -582,33 +428,22 @@ function rRose() {
             html += `<div class="rose-card-body">
                 <div class="rose-meta-row">
                     <span class="rose-meta-item">Valore rosa: <strong>${totalQta} cr</strong></span>`;
-            if (ci) {
-                html += `
-                    <span class="rose-meta-item">Cambi: <strong>${cambiVal}</strong></span>
+            if (pts !== '—') html += `<span class="rose-meta-item">Punti in classifica: <strong>${pts} pt</strong></span>`;
+            if (cambiVal !== '—') {
+                html += `<span class="rose-meta-item">Cambi: <strong>${cambiVal}</strong></span>
                     <span class="rose-meta-item">Crediti: <strong>${creditiVal} cr</strong></span>`;
             }
             html += `</div>`;
 
-            const DEPTS = [
-                { role: 'P', name: 'Portieri', emoji: '🧤', cls: 'dept-p' },
-                { role: 'D', name: 'Difensori', emoji: '🛡️', cls: 'dept-d' },
-                { role: 'C', name: 'Centrocampisti', emoji: '⚙️', cls: 'dept-c' },
-                { role: 'A', name: 'Attaccanti', emoji: '⚡', cls: 'dept-a' }
-            ];
-
             for (const dept of DEPTS) {
-                const deptPlayers = players.filter(p => (p.Ruolo || '').toUpperCase() === dept.role);
+                const deptPlayers = players.filter(p => (p.ruolo || '').toUpperCase() === dept.role);
                 if (deptPlayers.length === 0) continue;
 
-                // Sort by QtA desc
                 deptPlayers.sort((a, b) => {
-                    const rawA = (a.Calciatore || a.Nome || '').trim().replace(/\s*\*\s*$/, '').toLowerCase();
-                    const rawB = (b.Calciatore || b.Nome || '').trim().replace(/\s*\*\s*$/, '').toLowerCase();
-                    const qaInfo = S.quotMap[rawA];
-                    const qbInfo = S.quotMap[rawB];
-                    const qa = qaInfo ? qaInfo.qta : (+a.Costo || 0);
-                    const qb = qbInfo ? qbInfo.qta : (+b.Costo || 0);
-                    return qb - qa;
+                    const qa = a.qta || a.costo || 0;
+                    const qb = b.qta || b.costo || 0;
+                    if (qa !== qb) return qb - qa;
+                    return a.nome.localeCompare(b.nome);
                 });
 
                 html += `<div class="rose-dept-section">
@@ -626,19 +461,14 @@ function rRose() {
                         <tbody>`;
 
                 for (const p of deptPlayers) {
-                    const rawName = (p.Calciatore || p.Nome || '').trim();
-                    const isFuoriLista = isAsterisk(rawName);
-                    const pName = rawName.replace(/\s*\*\s*$/, '');
-                    const pKey = pName.toLowerCase();
-                    const qInfo = S.quotMap[pKey];
-                    const costo = +p.Costo || 0;
-                    const squadra = qInfo ? qInfo.sq : (p.Squadra || '—');
-                    const ruolo = p.Ruolo || '?';
-                    const qta = qInfo ? qInfo.qta : costo;
+                    const isFuoriLista = p.fl;
+                    const squadra = p.sq || '—';
+                    const ruolo = p.ruolo || '?';
+                    const qta = p.qta || p.costo || 0;
 
                     const nameHtml = isFuoriLista
-                        ? `<span class="rose-pname-fl">${pName} <span class="fl-tag">FL</span></span>`
-                        : pName;
+                        ? `<span class="rose-pname-fl">${p.nome} <span class="fl-tag">FL</span></span>`
+                        : p.nome;
 
                     html += `<tr class="${isFuoriLista ? 'rose-row-fl' : ''}">
                         <td><span class="rb rb-${ruolo.toLowerCase()}">${ruolo}</span></td>
@@ -654,7 +484,7 @@ function rRose() {
                 html += `</tbody></table></div>`;
             }
 
-            html += `</div>`; // rose-card-body
+            html += `</div>`;
         }
 
         html += `</div>`;
@@ -662,22 +492,21 @@ function rRose() {
 
     container.innerHTML = html;
 
-    // Wire accordion click
-    container.querySelectorAll('.rose-card-header').forEach(hdr => {
+    // Toggle squadra accordion al click
+    container.querySelectorAll('.rose-card-header[data-team]').forEach(hdr => {
         hdr.addEventListener('click', () => {
-            const t = hdr.dataset.team;
-            S.expandedRoseTeam = (S.expandedRoseTeam === t) ? null : t;
+            const team = hdr.dataset.team;
+            S.expandedRoseTeam = (S.expandedRoseTeam === team) ? null : team;
             rRose();
         });
     });
 }
 
-// ── Render Mercato (Tabella pulita) ──────────────────────────────────
+// ── RENDER MERCATO (Cambi & Crediti) ─────────────────────────────────
 function rMercato() {
     if (!S.cambi || !S.cambi.length) return;
 
-    // Nota speciale (se presente)
-    const extraNote = S.cambi.find(c => c.CambiExtra && c.CambiExtra.trim())?.CambiExtra;
+    const extraNote = S.cambi.find(c => c.extra && c.extra.trim())?.extra;
     const noteEl = $('mercatoNote');
     if (noteEl) {
         if (extraNote) {
@@ -692,38 +521,36 @@ function rMercato() {
         }
     }
 
-    // Ordinamento fisso di default: Crediti residui (decrescente), Cambi rimasti (decrescente), Fantasquadra (A-Z)
     const sortedCambi = [...S.cambi].sort((a, b) => {
-        const cra = +a.CreditiRimasti || 0;
-        const crb = +b.CreditiRimasti || 0;
+        const cra = +a.crediti || 0;
+        const crb = +b.crediti || 0;
         if (cra !== crb) return crb - cra;
 
-        const ca = +a.CambiRimasti || 0;
-        const cb = +b.CambiRimasti || 0;
+        const ca = +a.cambi || 0;
+        const cb = +b.cambi || 0;
         if (ca !== cb) return cb - ca;
 
-        return a.Fantasquadra.localeCompare(b.Fantasquadra);
+        return a.team.localeCompare(b.team);
     });
 
     const tbody = document.querySelector('#tCambi tbody');
     if (!tbody) return;
 
     tbody.innerHTML = sortedCambi.map(r => {
-        const cred = r.CreditiRimasti;
+        const cred = r.crediti;
         const credHtml = cred > 0
             ? `<span class="cred-tag pos">+${cred} cr</span>`
             : `<span class="cred-tag zero">0 cr</span>`;
 
-        const cambiVal = r.CambiRimasti;
+        const cambiVal = r.cambi;
         const fillPct = Math.min(100, (cambiVal / 10) * 100);
 
-        // Cambi bar color: green > 5, yellow 2-5, red < 2
         let cambiColor = 'cambi-green';
         if (cambiVal < 2) cambiColor = 'cambi-red';
         else if (cambiVal <= 5) cambiColor = 'cambi-yellow';
 
         return `<tr>
-            <td class="col-fantasquadra"><span class="fsq-name">⚽ ${r.Fantasquadra}</span></td>
+            <td class="col-fantasquadra"><span class="fsq-name">⚽ ${r.team}</span></td>
             <td class="n col-cambi">
                 <div class="cambi-bar-wrap">
                     <span class="cambi-val">${cambiVal}</span>
@@ -735,123 +562,87 @@ function rMercato() {
     }).join('');
 }
 
-// ── Render All ───────────────────────────────────────────────────────
 function render() {
     rGiocatori();
     rRose();
     rMercato();
 }
 
-// ── Events Setup ─────────────────────────────────────────────────────
+// ── SETUP EVENT LISTENERS & INIZIALIZZAZIONE ─────────────────────────
 function setup() {
-    // Keyboard Shortcuts
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') {
-            if (S.expandedPlayerName) {
-                S.expandedPlayerName = null;
-                rGiocatori();
-            }
-            return;
-        }
-        if (e.target.matches('input, textarea')) return;
-
-        if (e.key === '/') {
-            e.preventDefault();
-            const qInput = $('qGio');
-            if (qInput) qInput.focus();
-        } else if (['1', '2', '3'].includes(e.key)) {
-            const tabs = document.querySelectorAll('.t');
-            const idx = Number(e.key) - 1;
-            if (tabs[idx]) tabs[idx].click();
-        } else if (['p', 'd', 'c', 'a'].includes(e.key.toLowerCase())) {
-            const rKey = e.key.toUpperCase();
-            const rBtn = document.querySelector(`.pill-gio-r[data-r="${rKey}"]`);
-            if (rBtn) rBtn.click();
-        } else if (e.key === 'ArrowLeft') {
-            $('gnPrev')?.click();
-        } else if (e.key === 'ArrowRight') {
-            $('gnNext')?.click();
-        }
-    });
-
     // Tabs Navigation
-    document.querySelectorAll('.t').forEach(b =>
+    document.querySelectorAll('.tabs .t').forEach(b =>
         b.addEventListener('click', () => {
-            document.querySelectorAll('.t').forEach(x => x.classList.remove('active'));
+            document.querySelectorAll('.tabs .t').forEach(x => x.classList.remove('active'));
             document.querySelectorAll('.v').forEach(x => x.classList.remove('on'));
             b.classList.add('active');
-            $(`v-${b.dataset.v}`).classList.add('on');
+            $(`v-${b.dataset.v}`)?.classList.add('on');
         })
     );
 
-    // Giornata Navigator
-    $('gnPrev')?.addEventListener('click', () => {
-        const i = S.giornate.indexOf(S.gn);
-        if (i > 0) load(S.giornate[i - 1]);
-    });
-    $('gnNext')?.addEventListener('click', () => {
-        const i = S.giornate.indexOf(S.gn);
-        if (i < S.giornate.length - 1) load(S.giornate[i + 1]);
-    });
-    $('gnLabel')?.addEventListener('click', e => {
-        e.stopPropagation();
-        pickerOpen ? closePicker() : openPicker(e.currentTarget);
-    });
-    document.addEventListener('click', () => { if (pickerOpen) closePicker(); });
+    // Database Giocatori — Filtri Ruolo
+    document.querySelectorAll('.pill-gio-r').forEach(btn =>
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.pill-gio-r').forEach(x => x.classList.remove('on'));
+            btn.classList.add('on');
+            S.fR_gio = btn.dataset.r;
+            rGiocatori();
+        })
+    );
 
-    // Database Giocatori — Ricerca con Debounce
-    const qGioInput = $('qGio');
-    const clearGioBtn = $('searchClearGio');
+    // Database Giocatori — Filtri Stato Possesso
+    document.querySelectorAll('.pill-gio-s').forEach(btn =>
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.pill-gio-s').forEach(x => x.classList.remove('on'));
+            btn.classList.add('on');
+            S.fS_gio = btn.dataset.st;
+            rGiocatori();
+        })
+    );
 
-    const debouncedSearchGio = debounce(value => {
-        S.fQ_gio = value.toLowerCase().trim();
-        if (clearGioBtn) clearGioBtn.style.display = S.fQ_gio ? 'block' : 'none';
-        rGiocatori();
-    }, 120);
+    // Database Giocatori — Ricerca Instantanea
+    const searchInput = $('qGio');
+    const searchClear = $('searchClearGio');
 
-    if (qGioInput) {
-        qGioInput.addEventListener('input', e => debouncedSearchGio(e.target.value));
+    if (searchInput) {
+        searchInput.addEventListener('input', debounce(() => {
+            S.fQ_gio = searchInput.value.trim().toLowerCase();
+            if (searchClear) searchClear.style.display = S.fQ_gio ? 'block' : 'none';
+            rGiocatori();
+        }, 100));
     }
 
-    if (clearGioBtn) {
-        clearGioBtn.addEventListener('click', () => {
-            if (qGioInput) qGioInput.value = '';
+    if (searchClear) {
+        searchClear.addEventListener('click', () => {
+            if (searchInput) searchInput.value = '';
+            searchClear.style.display = 'none';
             S.fQ_gio = '';
-            clearGioBtn.style.display = 'none';
             rGiocatori();
-            if (qGioInput) qGioInput.focus();
         });
     }
 
-    // Database Giocatori — Pills filtro ruolo
-    document.querySelectorAll('.pill-gio-r').forEach(p =>
-        p.addEventListener('click', () => {
-            document.querySelectorAll('.pill-gio-r').forEach(x => x.classList.remove('on'));
-            p.classList.add('on');
-            S.fR_gio = p.dataset.r;
-            rGiocatori();
-        })
-    );
-
-    // Database Giocatori — Pills filtro stato possesso
-    document.querySelectorAll('.pill-gio-s').forEach(p =>
-        p.addEventListener('click', () => {
-            document.querySelectorAll('.pill-gio-s').forEach(x => x.classList.remove('on'));
-            p.classList.add('on');
-            S.fS_gio = p.dataset.st;
-            rGiocatori();
-        })
-    );
-
-    // Database Giocatori — Pills ordinamento rapido
+    // Database Giocatori — Ordinamento Desktop Pills
     document.querySelectorAll('.pill-sort').forEach(btn =>
         btn.addEventListener('click', () => {
             document.querySelectorAll('.pill-sort').forEach(x => x.classList.remove('on'));
             btn.classList.add('on');
             S.sortGio = btn.dataset.sort;
+            if ($('sortSelectMobile')) $('sortSelectMobile').value = btn.dataset.sort;
             rGiocatori();
         })
     );
+
+    // Database Giocatori — Ordinamento Mobile Select
+    const sortSelectMobile = $('sortSelectMobile');
+    if (sortSelectMobile) {
+        sortSelectMobile.addEventListener('change', () => {
+            S.sortGio = sortSelectMobile.value;
+            document.querySelectorAll('.pill-sort').forEach(x =>
+                x.classList.toggle('on', x.dataset.sort === S.sortGio)
+            );
+            rGiocatori();
+        });
+    }
 
     // Pulsante Flottante Torna Su
     const backToTopBtn = $('btnBackToTop');
@@ -868,33 +659,63 @@ function setup() {
         });
     }
 
-    // Database Giocatori — Reset filtri
+    // Database Giocatori — Reset Filtri
     $('btnResetGio')?.addEventListener('click', () => {
         S.fR_gio = '';
         S.fS_gio = '';
         S.fQ_gio = '';
         S.sortGio = 'default';
-        if ($('qGio')) $('qGio').value = '';
-        if ($('searchClearGio')) $('searchClearGio').style.display = 'none';
+        if (searchInput) searchInput.value = '';
+        if (searchClear) searchClear.style.display = 'none';
+        if (sortSelectMobile) sortSelectMobile.value = 'default';
         document.querySelectorAll('.pill-gio-r').forEach(x => x.classList.toggle('on', x.dataset.r === ''));
         document.querySelectorAll('.pill-gio-s').forEach(x => x.classList.toggle('on', x.dataset.st === ''));
         document.querySelectorAll('.pill-sort').forEach(x => x.classList.toggle('on', x.dataset.sort === 'default'));
         rGiocatori();
     });
+
+    // Selettore Giornate Nav
+    const lbl = $('gnLabel');
+    if (lbl) {
+        lbl.addEventListener('click', e => {
+            e.stopPropagation();
+            if (pickerOpen) closePicker();
+            else openPicker(lbl);
+        });
+    }
+
+    $('gnPrev')?.addEventListener('click', () => {
+        const i = S.giornate.indexOf(S.gn);
+        if (i > 0) load(S.giornate[i - 1]);
+    });
+
+    $('gnNext')?.addEventListener('click', () => {
+        const i = S.giornate.indexOf(S.gn);
+        if (i < S.giornate.length - 1) load(S.giornate[i + 1]);
+    });
+
+    document.addEventListener('click', e => {
+        if (pickerOpen && !$('picker')?.contains(e.target) && !$('gnLabel')?.contains(e.target)) {
+            closePicker();
+        }
+    });
 }
 
-// ── Init App ─────────────────────────────────────────────────────────
+// Inizializzazione Applicazione
 async function init() {
     setup();
-    let giornate = [];
+
     try {
         const r = await fetch('manifest.json?t=' + Date.now(), { cache: 'no-store' });
-        if (r.ok) giornate = (await r.json()).giornate || [];
-    } catch {}
-    if (!giornate.length) return;
-    S.giornate = giornate;
-    buildPicker();
-    await load(giornate[giornate.length - 1]);
+        const m = await r.json();
+        const giornate = (m.giornate || []).sort((a, b) => a - b);
+        if (!giornate.length) return;
+        S.giornate = giornate;
+        buildPicker();
+        await load(giornate[giornate.length - 1]);
+    } catch (e) {
+        console.error('Errore inizializzazione:', e);
+    }
 }
 
-init();
+document.addEventListener('DOMContentLoaded', init);
