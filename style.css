@@ -585,27 +585,24 @@ tbody tr {
         padding: 10px 12px;
         height: auto;
         flex-wrap: wrap;
-        gap: 10px;
+        gap: 8px;
         justify-content: space-between;
+        align-items: center;
     }
     
     .logo {
-        font-size: 15px;
+        font-size: 14px;
+        gap: 6px;
     }
     .badge-market {
         font-size: 10px;
         padding: 1px 5px;
-        margin: 0 2px;
+        margin: 0;
         color: var(--badge-market-tx);
         -webkit-text-fill-color: var(--badge-market-tx);
     }
     .dim {
-        display: inline-block;
-        font-size: 10px;
-        padding: 1px 5px;
-        margin-left: 2px;
-        color: #ffffff;
-        -webkit-text-fill-color: #ffffff;
+        display: none !important;
     }
 
     .tabs {
@@ -628,14 +625,29 @@ tbody tr {
 
     .bar-right {
         order: 2;
-        gap: 8px;
+        gap: 6px;
     }
     .gn-nav {
-        order: 2; /* fallback */
+        order: 2;
+        height: 30px;
     }
     .gn-btn {
-        padding: 5px 10px;
-        font-size: 13px;
+        width: 28px;
+        height: 30px;
+        padding: 0;
+        font-size: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .gn-label {
+        height: 30px;
+        padding: 0 8px;
+        font-size: 12px;
+        gap: 3px;
+    }
+    .gn-arrow {
+        font-size: 9px;
     }
 
     main {
@@ -1006,12 +1018,17 @@ tr.expand-row > td {
     }
     
     .picker {
-        width: 270px;
+        width: min(300px, calc(100vw - 20px));
+        max-width: calc(100vw - 20px);
         padding: 8px;
-        gap: 4px;
+        gap: 5px;
+        grid-template-columns: repeat(5, 1fr);
+        border-radius: 12px;
+        box-sizing: border-box;
     }
     .pk-btn {
         padding: 8px 2px;
+        font-size: 12px;
     }
 
     .box, .box.full-box {

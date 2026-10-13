@@ -226,10 +226,24 @@ function openPicker(anchor) {
     const el = $('picker');
     if (!el) return;
     const r = anchor.getBoundingClientRect();
-    el.style.top = `${r.bottom + 6}px`;
-    el.style.right = `${window.innerWidth - r.right}px`;
+    const vw = document.documentElement.clientWidth || window.innerWidth;
+    
     el.classList.add('show');
     pickerOpen = true;
+
+    // Calculate dimensions safely
+    const pickerWidth = el.offsetWidth || 280;
+    const rightMargin = Math.max(10, vw - r.right);
+
+    // If aligning to right edge pushes picker off the left screen edge, anchor to left
+    if (vw - rightMargin - pickerWidth < 10) {
+        el.style.left = '10px';
+        el.style.right = 'auto';
+    } else {
+        el.style.left = 'auto';
+        el.style.right = `${rightMargin}px`;
+    }
+    el.style.top = `${Math.round(r.bottom + 6)}px`;
 }
 
 function closePicker() {
