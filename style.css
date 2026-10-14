@@ -224,16 +224,15 @@ body {
 .picker {
     position: fixed;
     z-index: 200;
-    background: var(--card);
-    border: 1px solid var(--line);
+    background: #16233b;
+    border: 1px solid var(--chip-border);
     border-radius: 16px;
     padding: 12px;
     display: grid;
     grid-template-columns: repeat(6, 1fr);
     gap: 6px;
     width: 290px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(16px);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.05);
     opacity: 0;
     pointer-events: none;
     transform: translateY(-6px);
@@ -635,7 +634,9 @@ tbody tr {
         width: 28px;
         height: 30px;
         padding: 0;
-        font-size: 15px;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1067,15 +1068,15 @@ tr.expand-row > td {
         grid-template-columns: 1fr;
         grid-template-areas: 
             "search"
-            "filters"
-            "cnt";
+            "filters";
         padding: 12px 14px;
+        gap: 10px;
     }
     #cntGio {
-        justify-self: start;
-        height: auto;
-        padding: 4px 10px;
-        font-size: 11px;
+        display: none;
+    }
+    .sort-group {
+        margin-top: 2px;
     }
 
     /* 1. Tab Giocatori Cards */
