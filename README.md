@@ -4,6 +4,8 @@
 
 🌐 **Sito Live (GitHub Pages)**: [https://rosciric.github.io/fantanucleo-market/](https://rosciric.github.io/fantanucleo-market/)
 
+La pubblicazione usa GitHub Actions. In **Settings → Pages → Build and deployment**, seleziona **GitHub Actions** come sorgente. Il workflow pubblica solo frontend, manifest e JSON delle giornate.
+
 ---
 
 ## 🌟 Caratteristiche Principali
@@ -39,16 +41,16 @@ Al termine delle partite di campionato e del calcolo dei risultati:
    cd ~/Projects/fantanucleo_26_27
    python3 organizza_fanta.py
    ```
-   *Oppure lancia lo script direttamente dalla cartella Download:*
+   *Oppure, se hai copiato `aggiorna_fanta.sh` in `Downloads` accanto alla cartella del progetto:*
    ```bash
    ./aggiorna_fanta.sh
    ```
 3. **Cosa avviene in automatico**:
    - Riconosce il numero di giornata `N`.
    - Genera il file unificato `giornata_N/data_N.json` (e i CSV di archivio).
-   - Rimuove i file Excel dai `Downloads` e li archivia dentro `giornata_N/`.
+   - Archivia i file Excel elaborati dentro `giornata_N/` dopo aver verificato i dati importati.
    - Aggiorna `manifest.json`.
-   - Esegue `git add`, `git commit` e `git push` su GitHub.
+   - Crea un commit limitato ai dati della giornata e al manifest, poi esegue il push.
    - Avvia il server locale su `http://localhost:8080` e apre il browser per la verifica immediata.
    - Entro ~60 secondi il sito live su GitHub Pages sarà aggiornato.
 
@@ -66,8 +68,8 @@ Se a metà settimana cambiano le quotazioni di mercato e non ci sono nuove giorn
    ```
 3. **Cosa avviene in automatico**:
    - Lo script rileva che è presente solo il file quotazioni.
-   - Aggiorna e rigenera al volo il JSON dell'ultima giornata senza alterare punteggi e cambi.
-   - Esegue il push automatico su GitHub Pages.
+   - Aggiorna e rigenera il JSON dell'ultima giornata senza alterare punteggi e cambi.
+   - Crea un commit limitato ai dati aggiornati e al manifest, poi esegue il push.
 
 ---
 

@@ -8,6 +8,10 @@ const S = {
     cambi: [],
     dbGiocatori: [],
     counts: {},
+    dataCache: new Map(),
+    dataVersion: 'legacy',
+    loadSequence: 0,
+    loadController: null,
 
     // Filtri Database Giocatori
     fR_gio: '',
@@ -22,6 +26,35 @@ const S = {
 
 const $ = id => document.getElementById(id);
 const ROLE_ORDER = { P: 1, D: 2, C: 3, A: 4 };
+
+function setLoadStatus(message = '', isError = false) {
+    const el = $('loadStatus');
+    if (!el) return;
+    el.textContent = message;
+    el.classList.toggle('error', isError);
+}
+
+function bindAccordionActivation(container, selector, toggle) {
+    if (!container) return;
+    const activate = event => {
+        if (event.type === 'keydown') {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+        }
+        const control = event.target.closest(selector);
+        if (!control) return;
+        event.stopPropagation();
+        toggle(control);
+    };
+    container.addEventListener('click', activate);
+    container.addEventListener('keydown', activate);
+}
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[ch]);
+}
 
 // Abbreviazioni Squadre Serie A per Mobile
 const TEAM_ABBR = {
@@ -52,9 +85,9 @@ function renderPossesso(owners = []) {
         return `<span class="pos-status free"><span class="pos-dot">🟢</span> Libero</span>`;
     }
     if (count === 1) {
-        return `<span class="pos-status single"><span class="pos-team">${owners[0]}</span></span>`;
+        return `<span class="pos-status single"><span class="pos-team">${escapeHtml(owners[0])}</span></span>`;
     }
-    return `<span class="pos-status multi"><span class="pos-team">${owners[0]} <small class="pos-badge">+${count - 1}</small></span></span>`;
+    return `<span class="pos-status multi"><span class="pos-team">${escapeHtml(owners[0])} <small class="pos-badge">+${count - 1}</small></span></span>`;
 }
 
 // ── RENDER ACCORDION DETTAGLIO CALCIATORE INLINE ──────────────────────
@@ -69,23 +102,23 @@ function renderExpandedRow(p) {
                     <div class="pm-info-grid">
                         <div class="pm-stat">
                             <span class="pm-stat-lbl">Quotazione</span>
-                            <span class="pm-stat-val">${p.quot || 0} cr</span>
+                            <span class="pm-stat-val">${escapeHtml(p.quot || 0)} cr</span>
                         </div>
                         <div class="pm-stat">
                             <span class="pm-stat-lbl">FVM</span>
-                            <span class="pm-stat-val">${p.fvm || '—'}</span>
+                            <span class="pm-stat-val">${escapeHtml(p.fvm || '—')}</span>
                         </div>
                         <div class="pm-stat">
                             <span class="pm-stat-lbl">Fantamedia</span>
-                            <span class="pm-stat-val">${p.fm || '—'}</span>
+                            <span class="pm-stat-val">${escapeHtml(p.fm || '—')}</span>
                         </div>
                         <div class="pm-stat">
                             <span class="pm-stat-lbl">Media Voto</span>
-                            <span class="pm-stat-val">${p.mv || '—'}</span>
+                            <span class="pm-stat-val">${escapeHtml(p.mv || '—')}</span>
                         </div>
                         <div class="pm-stat">
                             <span class="pm-stat-lbl">Partite (PG)</span>
-                            <span class="pm-stat-val">${p.pg !== undefined && p.pg !== null ? p.pg : '—'}</span>
+                            <span class="pm-stat-val">${escapeHtml(p.pg !== undefined && p.pg !== null ? p.pg : '—')}</span>
                         </div>
                         <div class="pm-stat">
                             <span class="pm-stat-lbl">Stato</span>
@@ -101,22 +134,22 @@ function renderExpandedRow(p) {
             </td>
         </tr>`;
     } else {
-        const ownersHtml = p.owners.map(team => `<div class="pm-owner-chip">⚽ ${team}</div>`).join('');
+        const ownersHtml = p.owners.map(team => `<div class="pm-owner-chip">⚽ ${escapeHtml(team)}</div>`).join('');
         return `<tr class="expand-row">
             <td colspan="6">
                 <div class="inline-player-detail">
                     <div class="pm-info-grid">
                         <div class="pm-stat">
                             <span class="pm-stat-lbl">Quotazione</span>
-                            <span class="pm-stat-val">${p.quot || 0} cr</span>
+                            <span class="pm-stat-val">${escapeHtml(p.quot || 0)} cr</span>
                         </div>
                         <div class="pm-stat">
                             <span class="pm-stat-lbl">FVM</span>
-                            <span class="pm-stat-val">${p.fvm || '—'}</span>
+                            <span class="pm-stat-val">${escapeHtml(p.fvm || '—')}</span>
                         </div>
                         <div class="pm-stat">
                             <span class="pm-stat-lbl">Partite (PG)</span>
-                            <span class="pm-stat-val">${p.pg !== undefined && p.pg !== null ? p.pg : '—'}</span>
+                            <span class="pm-stat-val">${escapeHtml(p.pg !== undefined && p.pg !== null ? p.pg : '—')}</span>
                         </div>
                         <div class="pm-stat">
                             <span class="pm-stat-lbl">Possessori</span>
@@ -139,14 +172,26 @@ function renderExpandedRow(p) {
 
 // ── CARICAMENTO DATI GIORNATA (Singolo JSON) ──────────────────────────
 async function load(n) {
+    const sequence = ++S.loadSequence;
+    S.loadController?.abort();
+    const controller = new AbortController();
+    S.loadController = controller;
     S.gn = n;
     S.expandedPlayerName = null;
     updateNav();
+    setLoadStatus(`Caricamento giornata ${n}…`);
 
     try {
-        const res = await fetch(`giornata_${n}/data_${n}.json?t=${Date.now()}`, { cache: 'no-store' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+        const cacheKey = `${S.dataVersion}:${n}`;
+        let data = S.dataCache.get(cacheKey);
+        if (!data) {
+            const url = `giornata_${n}/data_${n}.json?v=${encodeURIComponent(S.dataVersion)}`;
+            const res = await fetch(url, { signal: controller.signal });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            data = await res.json();
+            S.dataCache.set(cacheKey, data);
+        }
+        if (sequence !== S.loadSequence) return;
 
         S.standings = data.standings || [];
         S.cambi = data.cambi || [];
@@ -156,8 +201,11 @@ async function load(n) {
 
         updateCounts();
         render();
+        setLoadStatus();
     } catch (err) {
+        if (err.name === 'AbortError' || sequence !== S.loadSequence) return;
         console.error(`Errore caricamento Giornata ${n}:`, err);
+        setLoadStatus(`Non riesco a caricare la giornata ${n}. Controlla la connessione e riprova.`, true);
     }
 }
 
@@ -334,12 +382,12 @@ function rGiocatori() {
         const qtClass = isOwned ? 'qt-badge qt-owned' : 'qt-badge';
         const unitClass = isOwned ? 'qt-unit qt-unit-owned' : 'qt-unit';
 
-        html += `<tr class="${rowClass}" data-role="${p.ruolo}" data-player-name="${p.nome}" aria-expanded="${isExpanded}" role="button" tabindex="0">
-            <td class="col-role"><span class="rb rb-${(p.ruolo || '').toLowerCase()}">${p.ruolo || '?'}</span></td>
-            <td class="col-nome"><span class="pname-text">${p.nome}</span></td>
+        html += `<tr class="${rowClass}" data-role="${escapeHtml(p.ruolo)}" data-player-name="${escapeHtml(p.nome)}" aria-expanded="${isExpanded}" role="button" tabindex="0">
+            <td class="col-role"><span class="rb rb-${escapeHtml((p.ruolo || '').toLowerCase())}">${escapeHtml(p.ruolo || '?')}</span></td>
+            <td class="col-nome"><span class="pname-text">${escapeHtml(p.nome)}</span></td>
             <td class="col-squadra">
-                <span class="hide-sm sq-text">${sqText}</span>
-                <span class="show-sm sq-badge">${getTeamAbbr(p.sq)}</span>
+                <span class="hide-sm sq-text">${escapeHtml(sqText)}</span>
+                <span class="show-sm sq-badge">${escapeHtml(getTeamAbbr(p.sq))}</span>
             </td>
             <td class="n col-quot"><span class="${qtClass}">${quotVal} <small class="${unitClass}">cr</small></span></td>
             <td class="col-possesso">${ownerHtml}</td>
@@ -352,16 +400,6 @@ function rGiocatori() {
     }
 
     tbody.innerHTML = html;
-
-    // Toggle accordion inline al click
-    tbody.querySelectorAll('tr.player-row[data-player-name]').forEach(tr => {
-        tr.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const pName = tr.dataset.playerName;
-            S.expandedPlayerName = (S.expandedPlayerName === pName) ? null : pName;
-            rGiocatori();
-        });
-    });
 
     const isFilteredGio = !!(S.fR_gio || S.fS_gio || S.fQ_gio);
     if ($('btnResetGio')) $('btnResetGio').style.display = isFilteredGio ? 'inline-flex' : 'none';
@@ -425,11 +463,11 @@ function rRose() {
         else if (pos === 2) posClass += ' rose-pos-2';
         else if (pos === 3) posClass += ' rose-pos-3';
 
-        html += `<div class="rose-card ${isExpanded ? 'rose-card-open' : ''}" data-team="${team}">
-            <div class="rose-card-header" data-team="${team}" role="button" tabindex="0" aria-expanded="${isExpanded}">
+        html += `<div class="rose-card ${isExpanded ? 'rose-card-open' : ''}" data-team="${escapeHtml(team)}">
+            <div class="rose-card-header" data-team="${escapeHtml(team)}" role="button" tabindex="0" aria-expanded="${isExpanded}">
                 <div class="rose-header-left">
                     <span class="${posClass}">${pos}</span>
-                    <span class="rose-team-name">${team}</span>
+                    <span class="rose-team-name">${escapeHtml(team)}</span>
                     <span class="rose-badge-count">${players.length}</span>
                 </div>
                 <div class="rose-header-right">
@@ -481,15 +519,15 @@ function rRose() {
                     const qta = p.qta || p.costo || 0;
 
                     const nameHtml = isFuoriLista
-                        ? `<span class="rose-pname-fl">${p.nome} <span class="fl-tag">FL</span></span>`
-                        : p.nome;
+                        ? `<span class="rose-pname-fl">${escapeHtml(p.nome)} <span class="fl-tag">FL</span></span>`
+                        : escapeHtml(p.nome);
 
                     html += `<tr class="${isFuoriLista ? 'rose-row-fl' : ''}">
-                        <td><span class="rb rb-${ruolo.toLowerCase()}">${ruolo}</span></td>
+                        <td><span class="rb rb-${escapeHtml(ruolo.toLowerCase())}">${escapeHtml(ruolo)}</span></td>
                         <td class="rose-pname">${nameHtml}</td>
                         <td class="rose-sq">
-                            <span class="hide-sm">${squadra}</span>
-                            <span class="show-sm">${getTeamAbbr(squadra)}</span>
+                            <span class="hide-sm">${escapeHtml(squadra)}</span>
+                            <span class="show-sm">${escapeHtml(getTeamAbbr(squadra))}</span>
                         </td>
                         <td class="n">${qta} <small class="qt-unit">cr</small></td>
                     </tr>`;
@@ -506,14 +544,6 @@ function rRose() {
 
     container.innerHTML = html;
 
-    // Toggle squadra accordion al click
-    container.querySelectorAll('.rose-card-header[data-team]').forEach(hdr => {
-        hdr.addEventListener('click', () => {
-            const team = hdr.dataset.team;
-            S.expandedRoseTeam = (S.expandedRoseTeam === team) ? null : team;
-            rRose();
-        });
-    });
 }
 
 // ── RENDER MERCATO (Cambi & Crediti) ─────────────────────────────────
@@ -529,7 +559,7 @@ function rMercato() {
             if (extraNote.toLowerCase().includes('illimitat')) {
                 formattedNote = 'Cambi illimitati fino alla quarta giornata';
             }
-            noteEl.innerHTML = `<strong>ℹ️ Regola Mercato:</strong> ${formattedNote}`;
+            noteEl.innerHTML = `<strong>ℹ️ Regola Mercato:</strong> ${escapeHtml(formattedNote)}`;
         } else {
             noteEl.style.display = 'none';
         }
@@ -564,11 +594,11 @@ function rMercato() {
         else if (cambiVal <= 5) cambiColor = 'cambi-yellow';
 
         return `<tr>
-            <td class="col-fantasquadra"><span class="fsq-name">⚽ ${r.team}</span></td>
+            <td class="col-fantasquadra"><span class="fsq-name">⚽ ${escapeHtml(r.team)}</span></td>
             <td class="n col-cambi">
                 <div class="cambi-bar-wrap">
-                    <span class="cambi-val">${cambiVal}</span>
-                    <div class="cambi-track ${cambiColor}" title="${cambiVal} cambi rimasti"><div class="cambi-fill" style="width:${fillPct}%"></div></div>
+                    <span class="cambi-val">${escapeHtml(cambiVal)}</span>
+                    <div class="cambi-track ${cambiColor}" title="${escapeHtml(cambiVal)} cambi rimasti"><div class="cambi-fill" style="width:${fillPct}%"></div></div>
                 </div>
             </td>
             <td class="n col-crediti">${credHtml}</td>
@@ -584,6 +614,23 @@ function render() {
 
 // ── SETUP EVENT LISTENERS & INIZIALIZZAZIONE ─────────────────────────
 function setup() {
+    bindAccordionActivation(document.querySelector('#tGiocatori tbody'), 'tr.player-row[data-player-name]', row => {
+        const playerName = row.dataset.playerName;
+        S.expandedPlayerName = S.expandedPlayerName === playerName ? null : playerName;
+        rGiocatori();
+        document.querySelectorAll('#tGiocatori tbody tr.player-row').forEach(nextRow => {
+            if (nextRow.dataset.playerName === playerName) nextRow.focus();
+        });
+    });
+    bindAccordionActivation($('roseAccordion'), '.rose-card-header[data-team]', header => {
+        const team = header.dataset.team;
+        S.expandedRoseTeam = S.expandedRoseTeam === team ? null : team;
+        rRose();
+        document.querySelectorAll('.rose-card-header[data-team]').forEach(nextHeader => {
+            if (nextHeader.dataset.team === team) nextHeader.focus();
+        });
+    });
+
     // Tabs Navigation
     document.querySelectorAll('.tabs .t').forEach(b =>
         b.addEventListener('click', () => {
@@ -720,15 +767,21 @@ async function init() {
     setup();
 
     try {
-        const r = await fetch('manifest.json?t=' + Date.now(), { cache: 'no-store' });
+        const r = await fetch('manifest.json', { cache: 'no-cache' });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const m = await r.json();
-        const giornate = (m.giornate || []).sort((a, b) => a - b);
-        if (!giornate.length) return;
+        const giornate = (Array.isArray(m.giornate) ? m.giornate : []).map(Number).filter(Number.isInteger).sort((a, b) => a - b);
+        if (!giornate.length) {
+            setLoadStatus('Non ci sono giornate disponibili.', true);
+            return;
+        }
+        S.dataVersion = String(m.version || `legacy-${Date.now()}`);
         S.giornate = giornate;
         buildPicker();
         await load(giornate[giornate.length - 1]);
     } catch (e) {
         console.error('Errore inizializzazione:', e);
+        setLoadStatus('Non riesco a leggere l’elenco delle giornate. Riprova più tardi.', true);
     }
 }
 

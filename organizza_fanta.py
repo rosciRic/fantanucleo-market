@@ -19,6 +19,8 @@ import csv
 import json
 import shutil
 import socket
+import tempfile
+from datetime import datetime, timezone
 import webbrowser
 import subprocess
 from pathlib import Path
@@ -236,11 +238,11 @@ def parse_listone_file(out_dir: Path = None, num: int = 1):
     """
     Cerca il file Excel del listone ufficiale per la giornata e ne estrae le quotazioni.
     """
-    candidates = []
+    # Un listone appena scaricato deve prevalere su quello archiviato.
+    candidates = sorted(DOWNLOADS_DIR.glob("Quotazioni_Fantacalcio*.xlsx"), key=lambda p: p.stat().st_mtime, reverse=True)
     if out_dir and out_dir.exists():
-        candidates.extend(list(out_dir.glob("Quotazioni*.xlsx")))
-    candidates.extend(list(DOWNLOADS_DIR.glob("Quotazioni_Fantacalcio*.xlsx")))
-    candidates.extend(list(FANTA_DIR.glob("**/Quotazioni_Fantacalcio*.xlsx")))
+        candidates.extend(sorted(out_dir.glob("Quotazioni*.xlsx"), key=lambda p: p.stat().st_mtime, reverse=True))
+    candidates.extend(sorted(FANTA_DIR.glob("**/Quotazioni_Fantacalcio*.xlsx"), key=lambda p: p.stat().st_mtime, reverse=True))
     file_path = candidates[0] if candidates else None
 
     if not file_path or not file_path.exists():
@@ -281,6 +283,16 @@ def write_csv(path, header, rows):
     return len(rows)
 
 
+def write_giornata_json(giornata_dir: Path, num: int) -> dict:
+    """Rigenera il JSON consumato dal frontend a partire dagli archivi CSV."""
+    from export_json import generate_giornata_json
+
+    data = generate_giornata_json(giornata_dir, num)
+    with open(giornata_dir / f"data_{num}.json", "w", encoding="utf-8") as f_json:
+        json.dump(data, f_json, ensure_ascii=False, separators=(',', ':'))
+    return data
+
+
 def convert(xlsx_path: Path):
     if not xlsx_path.exists():
         print(f"Errore: {xlsx_path} non trovato.")
@@ -304,48 +316,75 @@ def convert(xlsx_path: Path):
 
     out = FANTA_DIR / f"giornata_{num}"
     out.mkdir(parents=True, exist_ok=True)
-
-    for old in out.glob("*.csv"):
-        old.unlink()
+    work = Path(tempfile.mkdtemp(prefix=f".giornata_{num}_", dir=str(FANTA_DIR)))
+    # Se non è arrivato un listone nuovo, usa quello già archiviato durante la fase di staging.
+    for archived_quote in sorted(out.glob("Quotazioni*.xlsx"), key=lambda p: p.stat().st_mtime, reverse=True):
+        shutil.copy2(archived_quote, work / archived_quote.name)
+        break
 
     # Foglio Risultati
-    ris_sheet = wb[next((s for s in wb.sheetnames if 'risultat' in s.lower()), wb.sheetnames[0])]
+    ris_name = next((s for s in wb.sheetnames if 'risultat' in s.lower()), None)
+    rose_name = next((s for s in wb.sheetnames if 'rose' in s.lower()), None)
+    svinc_name = next((s for s in wb.sheetnames if 'svincolat' in s.lower()), None)
+    if not (ris_name and rose_name and svinc_name):
+        sheets = wb.sheetnames
+        wb.close()
+        shutil.rmtree(work, ignore_errors=True)
+        print(f"❌ File non riconosciuto: fogli trovati {sheets}. Nessun dato modificato.")
+        return
+    ris_sheet = wb[ris_name]
     campionato = parse_classifica(ris_sheet)
-    write_csv(out / f"classifiche_campionato_{num}.csv", ["Tipo", "Posizione", "Fantasquadra", "Punti"], campionato)
 
     # Foglio Rose
-    rose_sheet = wb[next((s for s in wb.sheetnames if 'rose' in s.lower()), wb.sheetnames[1])]
+    rose_sheet = wb[rose_name]
     rose = parse_rose(rose_sheet)
-    write_csv(out / f"rose_{num}.csv", ["Fantasquadra", "Ruolo", "Calciatore", "Costo"], rose)
 
     # Quotazioni Listone Ufficiale
-    quotazioni = parse_listone_file(out, num)
+    quotazioni = parse_listone_file(work, num)
     quot_map = {}
     if quotazioni:
-        write_csv(out / f"quotazioni_{num}.csv", ["Nome", "Squadra", "Ruolo", "QtA", "QtI", "Diff"], quotazioni)
         print(f"  → quotazioni_{num}.csv scritte ({len(quotazioni)} calciatori)")
         for q in quotazioni:
             q_nome = q[0].replace('*', '').strip().lower()
             quot_map[q_nome] = q[3]
 
     # Foglio Svincolati
-    svinc_sheet = wb[next((s for s in wb.sheetnames if 'svincolat' in s.lower()), wb.sheetnames[2])]
+    svinc_sheet = wb[svinc_name]
     svinc = parse_svincolati(svinc_sheet, quot_map)
-    write_csv(out / f"svincolati_{num}.csv", ["Nome", "Squadra", "Ruolo", "PG", "MV", "FM", "FVM", "Quotazione"], svinc)
 
     # Cambi & Crediti
     cambi = parse_cambi(ris_sheet)
-    write_csv(out / f"cambi_{num}.csv", ["Fantasquadra", "CambiRimasti", "CreditiRimasti", "CambiExtra"], cambi)
+    rose_counts = {}
+    for team, _, _, _ in rose:
+        rose_counts[team] = rose_counts.get(team, 0) + 1
+    if len(campionato) != 18 or len(cambi) != 18 or len(rose_counts) != 18 or any(v != 23 for v in rose_counts.values()):
+        wb.close()
+        shutil.rmtree(work, ignore_errors=True)
+        print(f"❌ Dati incompleti (classifica={len(campionato)}, rose={len(rose_counts)} squadre, cambi={len(cambi)}). Nessun dato modificato.")
+        return
+
+    write_csv(work / f"classifiche_campionato_{num}.csv", ["Tipo", "Posizione", "Fantasquadra", "Punti"], campionato)
+    write_csv(work / f"rose_{num}.csv", ["Fantasquadra", "Ruolo", "Calciatore", "Costo"], rose)
+    if quotazioni:
+        write_csv(work / f"quotazioni_{num}.csv", ["Nome", "Squadra", "Ruolo", "QtA", "QtI", "Diff"], quotazioni)
+    write_csv(work / f"svincolati_{num}.csv", ["Nome", "Squadra", "Ruolo", "PG", "MV", "FM", "FVM", "Quotazione"], svinc)
+    write_csv(work / f"cambi_{num}.csv", ["Fantasquadra", "CambiRimasti", "CreditiRimasti", "CambiExtra"], cambi)
 
     # Esportazione JSON unificato per la dashboard web
     try:
-        from export_json import generate_giornata_json
-        g_data = generate_giornata_json(out, num)
-        with open(out / f"data_{num}.json", "w", encoding="utf-8") as f_json:
-            json.dump(g_data, f_json, ensure_ascii=False, separators=(',', ':'))
+        g_data = write_giornata_json(work, num)
         print(f"  → data_{num}.json generato con successo ({len(g_data['giocatori'])} calciatori)")
     except Exception as e:
-        print(f"  ⚠️ Avviso esportazione JSON: {e}")
+        wb.close()
+        shutil.rmtree(work, ignore_errors=True)
+        print(f"❌ Esportazione JSON fallita: {e}. Il file risultati non è stato archiviato.")
+        return
+
+    # Promuove gli artefatti solo dopo parsing, controlli e generazione JSON riusciti.
+    for artifact in work.glob("*.csv"):
+        artifact.replace(out / artifact.name)
+    (work / f"data_{num}.json").replace(out / f"data_{num}.json")
+    shutil.rmtree(work, ignore_errors=True)
 
     # ── Organizzazione e rimozione completa da Downloads ──
     wb.close()
@@ -381,8 +420,16 @@ def push_to_github(giornata_num):
     """Esegue git add, commit e push su GitHub per aggiornare GitHub Pages."""
     try:
         print(f"🚀 Pubblicazione modifiche su GitHub Pages (G{giornata_num})...")
-        subprocess.run(['git', 'add', '.'], cwd=str(FANTA_DIR), check=True)
-        subprocess.run(['git', 'commit', '-m', f"Aggiornamento dati Giornata {giornata_num}"], cwd=str(FANTA_DIR), check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        giorno = f"giornata_{giornata_num}"
+        paths = ["manifest.json"] + [f"{giorno}/{name}_{giornata_num}.csv" for name in ("classifiche_campionato", "rose", "svincolati", "cambi")] + [f"{giorno}/data_{giornata_num}.json"]
+        quot_path = FANTA_DIR / giorno / f"quotazioni_{giornata_num}.csv"
+        if quot_path.exists():
+            paths.append(f"{giorno}/quotazioni_{giornata_num}.csv")
+        subprocess.run(['git', 'add', '--', *paths], cwd=str(FANTA_DIR), check=True)
+        commit = subprocess.run(['git', 'commit', '--only', '-m', f"Aggiornamento dati Giornata {giornata_num}", '--', *paths], cwd=str(FANTA_DIR), check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if commit.returncode != 0:
+            print("  ⚠️ Commit non riuscito o nessuna modifica da pubblicare; push annullato.\n")
+            return
         res = subprocess.run(['git', 'push'], cwd=str(FANTA_DIR), check=False, capture_output=True, text=True)
         if res.returncode == 0:
             print("  ✓ Sito live aggiornato: https://rosciric.github.io/fantanucleo-market/\n")
@@ -398,7 +445,10 @@ def update_manifest():
         for d in FANTA_DIR.glob('giornata_*') if d.is_dir()
     )
     with open(FANTA_DIR / 'manifest.json', 'w', encoding='utf-8') as f:
-        json.dump({'giornate': giornate}, f)
+        json.dump({
+            'giornate': giornate,
+            'version': datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
+        }, f)
 
 
 def open_dashboard():
@@ -436,37 +486,34 @@ def update_latest_quotazioni(candidates_quot):
         
     out = FANTA_DIR / f"giornata_{max_num}"
     print(f"🔄 Aggiornamento Listone/Quotazioni per Giornata {max_num}...")
-    
-    # Rimuovi vecchio file excel quotazioni
-    for old_q in out.glob("Quotazioni*.xlsx"):
-        try:
-            old_q.unlink()
-        except Exception:
-            pass
-            
-    # Sposta il nuovo
+    work = Path(tempfile.mkdtemp(prefix=".quotazioni_", dir=str(FANTA_DIR)))
+    try:
+        for source_csv in out.glob("*.csv"):
+            shutil.copy2(source_csv, work / source_csv.name)
+        quotazioni = parse_listone_file(work, max_num)
+        if not quotazioni:
+            raise ValueError("il listone non contiene quotazioni leggibili")
+        write_csv(work / f"quotazioni_{max_num}.csv", ["Nome", "Squadra", "Ruolo", "QtA", "QtI", "Diff"], quotazioni)
+        g_data = write_giornata_json(work, max_num)
+        for name in (f"quotazioni_{max_num}.csv", f"data_{max_num}.json"):
+            (work / name).replace(out / name)
+        print(f"  → quotazioni_{max_num}.csv e data_{max_num}.json aggiornati ({len(g_data['giocatori'])} calciatori)")
+    except Exception as e:
+        print(f"❌ Aggiornamento listone fallito: {e}. Gli artefatti precedenti restano invariati.")
+        shutil.rmtree(work, ignore_errors=True)
+        return
+    shutil.rmtree(work, ignore_errors=True)
+
+    # Archivia il nuovo Excel dopo avere promosso con successo CSV e JSON.
     dest_q = out / f"Quotazioni_{max_num}ª_2026_2027.xlsx"
     try:
+        for old_q in out.glob("Quotazioni*.xlsx"):
+            old_q.unlink()
         shutil.move(str(q_file), str(dest_q))
-        print(f"  → Nuovo file listone spostato in {dest_q.name}")
+        print(f"  → Nuovo file listone archiviato in {dest_q.name}")
     except Exception as e:
-        print(f"Errore spostamento file: {e}")
-        return
-        
-    # Rigenera CSV
-    quotazioni = parse_listone_file(out, max_num)
-    if quotazioni:
-        write_csv(out / f"quotazioni_{max_num}.csv", ["Nome", "Squadra", "Ruolo", "QtA", "QtI", "Diff"], quotazioni)
-        print(f"  → quotazioni_{max_num}.csv aggiornato ({len(quotazioni)} calciatori)")
-        try:
-            from export_json import generate_giornata_json
-            g_data = generate_giornata_json(out, max_num)
-            with open(out / f"data_{max_num}.json", "w", encoding="utf-8") as f_json:
-                json.dump(g_data, f_json, ensure_ascii=False, separators=(',', ':'))
-            print(f"  → data_{max_num}.json aggiornato ({len(g_data['giocatori'])} calciatori)")
-        except Exception as e:
-            print(f"  ⚠️ Avviso aggiornamento JSON: {e}")
-        
+        print(f"  ⚠️ CSV e JSON aggiornati, ma non è stato possibile archiviare l'Excel: {e}")
+
     update_manifest()
     push_to_github(max_num)
 
