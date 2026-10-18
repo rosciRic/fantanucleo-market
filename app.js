@@ -468,7 +468,6 @@ function rRose() {
                 <div class="rose-header-left">
                     <span class="${posClass}">${pos}</span>
                     <span class="rose-team-name">${escapeHtml(team)}</span>
-                    <span class="rose-badge-count">${players.length}</span>
                 </div>
                 <div class="rose-header-right">
                     <span class="rose-pts">${totalQta} <small>cr</small> · ${pts} <small>pt</small></span>
