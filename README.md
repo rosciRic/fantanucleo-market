@@ -27,32 +27,32 @@ La pubblicazione usa GitHub Actions. In **Settings → Pages → Build and deplo
 
 ## 🔄 Guida Operativa: Come Aggiornare i Dati
 
-La gestione e la pubblicazione dei dati sono totalmente automatizzate. Ecco le operazioni passo-passo per ogni scenario:
+Per aggiornare il sito a ogni giornata usa lo script incluso nella repository. Cerca i file Excel nella cartella `~/Downloads`, prepara i dati e li pubblica su GitHub Pages tramite Git.
 
 ### 1. Aggiornamento Settimanale Standard (Nuova Giornata)
 
 Al termine delle partite di campionato e del calcolo dei risultati:
 
-1. **Scarica i 2 file Excel da Fantacalcio.it** (verranno salvati nella tua cartella `Downloads`):
-   - `Risultati_Nª_2026_2027.xlsx`
-   - `Quotazioni_Fantacalcio_Nª.xlsx`
-2. **Apri il terminale ed esegui**:
+1. Scarica da Fantacalcio.it il file dei risultati della giornata e il listone delle quotazioni. Lasciali nella cartella `~/Downloads`.
+2. Se è la prima volta, installa la dipendenza Python:
+   ```bash
+   cd ~/Projects/fantanucleo_26_27
+   python3 -m pip install openpyxl
+   ```
+3. A ogni nuova giornata apri il terminale ed esegui:
    ```bash
    cd ~/Projects/fantanucleo_26_27
    python3 organizza_fanta.py
    ```
-   *Oppure, se hai copiato `aggiorna_fanta.sh` in `Downloads` accanto alla cartella del progetto:*
+   In alternativa, dalla cartella del progetto:
    ```bash
    ./aggiorna_fanta.sh
    ```
-3. **Cosa avviene in automatico**:
-   - Riconosce il numero di giornata `N`.
-   - Genera il file unificato `giornata_N/data_N.json` (e i CSV di archivio).
-   - Archivia i file Excel elaborati dentro `giornata_N/` dopo aver verificato i dati importati.
-   - Aggiorna `manifest.json`.
-   - Crea un commit limitato ai dati della giornata e al manifest, poi esegue il push.
-   - Avvia il server locale su `http://localhost:8080` e apre il browser per la verifica immediata.
-   - Entro ~60 secondi il sito live su GitHub Pages sarà aggiornato.
+4. Lo script ricava la giornata dai nomi dei file, controlla i dati, genera JSON e CSV, aggiorna `manifest.json` e archivia gli Excel elaborati in `giornata_N/`.
+5. Se i dati sono validi, crea un commit limitato ai file di quella giornata e al manifest, poi esegue `git push`. GitHub Actions pubblica il sito; puoi seguirne l'esito nella scheda **Actions** della repository.
+6. Lo script apre anche la dashboard locale su `http://localhost:8080` per controllare i dati.
+
+**Prima pubblicazione:** configura l'accesso GitHub dal computer con Git Credential Manager o GitHub CLI (`gh auth login` e `gh auth setup-git`). Non inserire token GitHub nei file del progetto.
 
 ---
 
@@ -60,16 +60,13 @@ Al termine delle partite di campionato e del calcolo dei risultati:
 
 Se a metà settimana cambiano le quotazioni di mercato e non ci sono nuove giornate da calcolare:
 
-1. **Scarica solo l'Excel delle quotazioni** nei `Downloads`:
-   - `Quotazioni_Fantacalcio_*.xlsx`
-2. **Esegui lo script**:
+1. Scarica il nuovo Excel delle quotazioni (`Quotazioni_Fantacalcio*.xlsx`) in `~/Downloads`.
+2. Esegui lo stesso comando dalla cartella del progetto:
    ```bash
+   cd ~/Projects/fantanucleo_26_27
    python3 organizza_fanta.py
    ```
-3. **Cosa avviene in automatico**:
-   - Lo script rileva che è presente solo il file quotazioni.
-   - Aggiorna e rigenera il JSON dell'ultima giornata senza alterare punteggi e cambi.
-   - Crea un commit limitato ai dati aggiornati e al manifest, poi esegue il push.
+   Se non trova file `Risultati*.xlsx`, aggiorna le quotazioni dell'ultima giornata, rigenera il JSON, aggiorna il manifest e pubblica i file aggiornati.
 
 ---
 
@@ -92,12 +89,12 @@ http://localhost:8000
 ```
 fantanucleo_26_27/
 ├── index.html            # Markup semantico dell'applicazione (3 tab)
-├── style.css             # Design System Dark Steel Navy (#1e2d4a), responsive
+├── style.css             # Design system Stadio Notturno, responsive
 ├── app.js                # Logica frontend vanilla (caricamento JSON, filtri, accordion)
 ├── manifest.json         # Registro JSON delle giornate disponibili ([1, 2, 3, ...])
 ├── organizza_fanta.py    # Script master di parsing Excel, archiviazione e auto-deploy
 ├── export_json.py        # Generatore JSON unificato pre-calcolato (data_N.json)
-├── aggiorna_fanta.sh     # Wrapper bash eseguibile da cartella Downloads
+├── aggiorna_fanta.sh     # Wrapper bash per l'aggiornamento dei dati
 └── giornata_N/           # Dati per ogni giornata di campionato
     ├── data_N.json       # JSON unificato consumato dall'app web (~110 KB)
     ├── rose_N.csv
