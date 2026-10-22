@@ -22,6 +22,11 @@ def validate(data, day):
     for row in standings:
         if not row['team'].strip() or not isinstance(row['pts'], (int, float)) or not math.isfinite(row['pts']):
             raise ValueError(f'G{day}: squadra o punteggio non valido')
+    for row in balances:
+        for field in ('cambi', 'crediti'):
+            value = row[field]
+            if type(value) not in (int, float) or not math.isfinite(value) or value < 0:
+                raise ValueError(f"G{day}: {field} non validi per {row['team']}")
     expected = {}
     for team, roster in rosters.items():
         names = [p['nome'].casefold() for p in roster]

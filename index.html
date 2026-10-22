@@ -6,8 +6,8 @@
     <meta name="description" content="Fantanucleo: calciatori, rose e mercato della lega 2026/27.">
     <meta name="color-scheme" content="dark">
     <title>Fantanucleo · Market 26/27</title>
-    <link rel="stylesheet" href="style.css?v=29">
-    <script src="app.js?v=29" defer></script>
+    <link rel="stylesheet" href="style.css?v=32">
+    <script src="app.js?v=32" defer></script>
 </head>
 <body>
     <a class="skip" href="#main">Vai ai contenuti</a>
@@ -33,9 +33,12 @@
         <div id="content" aria-busy="true" hidden>
             <section id="players" aria-label="Giocatori">
                 <form id="filters" class="toolbar" role="search">
-                    <label class="search-label">Cerca calciatore o squadra
-                        <input id="query" type="search" placeholder="Nome, squadra o fantasquadra…" autocomplete="off">
-                    </label>
+                    <div class="search-row">
+                        <label class="search-label">Cerca calciatore o squadra
+                            <input id="query" type="search" placeholder="Nome, squadra o fantasquadra…" autocomplete="off">
+                        </label>
+                        <button type="reset" class="subtle">Azzera filtri</button>
+                    </div>
                     <div class="filter-grid">
                         <fieldset class="role-filter">
                             <legend>Ruolo</legend>
@@ -47,22 +50,18 @@
                                 <button type="button" data-role="A" aria-label="Attaccanti" aria-pressed="false">A</button>
                             </div>
                         </fieldset>
-                        <label>Possesso
-                            <select id="ownership">
-                                <option value="">Tutti</option><option value="free">Svincolati</option><option value="owned">Posseduti</option>
-                            </select>
-                        </label>
-                        <label>Ordina per
-                            <select id="sort">
-                                <option value="role">Ruolo e quotazione</option><option value="value">Quotazione</option>
-                                <option value="name">Nome</option>
-                            </select>
-                        </label>
-                        <button type="reset" class="subtle">Azzera filtri</button>
+                        <fieldset class="ownership-filter">
+                            <legend>Disponibilità</legend>
+                            <div id="ownership-filters" class="chips">
+                                <button type="button" data-ownership="" aria-pressed="true">Tutti</button>
+                                <button type="button" data-ownership="free" aria-pressed="false">Svincolati</button>
+                                <button type="button" data-ownership="owned" aria-pressed="false">Presi</button>
+                            </div>
+                        </fieldset>
                     </div>
                 </form>
                 <div class="section-heading"><h2>Calciatori</h2><span id="count" class="muted" role="status"></span></div>
-                <div class="list-head" aria-hidden="true"><span>Calciatore</span><span>Quotazione</span><span>Possesso</span></div>
+                <div class="list-head" aria-hidden="true"><span>Calciatore</span><span>Quotazione</span><span>Fantasquadre</span></div>
                 <div id="player-list"></div>
             </section>
             <section id="teams" hidden aria-label="Rose e classifica">
@@ -70,7 +69,7 @@
                 <div id="team-list"></div>
             </section>
             <section id="market" hidden aria-label="Crediti e cambi">
-                <div class="section-heading"><h2>Risorse per il mercato</h2><span class="muted">Disponibilità per fantasquadra</span></div>
+                <div class="section-heading"><h2>Risorse per il mercato</h2><span class="muted">Più cambi, poi più crediti</span></div>
                 <div class="table-wrap">
                     <table>
                         <thead><tr><th scope="col">Squadra</th><th scope="col">Cambi rimasti</th><th scope="col">Crediti residui</th><th scope="col">Extra</th></tr></thead>

@@ -26,6 +26,15 @@ class PipelineTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate(self.data, 7)
 
+    def test_invalid_market_balances_are_rejected(self):
+        for field in ('cambi', 'crediti'):
+            for value in ('—', None, float('nan'), -1, True):
+                with self.subTest(field=field, value=value):
+                    data = json.loads((ROOT / 'giornata_7/data_7.json').read_text())
+                    data['cambi'][0][field] = value
+                    with self.assertRaises(ValueError):
+                        validate(data, 7)
+
     def test_manifest_is_deterministic(self):
         self.assertEqual(manifest(), manifest())
 

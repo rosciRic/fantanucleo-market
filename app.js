@@ -6,7 +6,7 @@ const fmt = new Intl.NumberFormat('it-IT', {maximumFractionDigits: 2});
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const num = value => typeof value === 'number' && Number.isFinite(value) ? fmt.format(value) : esc(value || '—');
 const normalize = value => String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('it');
-const state = {data: null, days: [], version: '', cache: new Map(), view: 'players', role: '', request: 0, controller: null, target: null};
+const state = {data: null, days: [], version: '', cache: new Map(), view: 'players', role: '', ownership: '', request: 0, controller: null, target: null};
 function roleBadge(role) { return `<span class="role role-${esc(role)}" title="${esc(roles[role] || role)}">${esc(role)}</span>`; }
 function feedback(message, error = false) {
     $('feedback').textContent = message;
@@ -20,6 +20,7 @@ async function json(url, signal) {
 }
 function validate(data, day) {
     if (data.giornata !== day || !Array.isArray(data.giocatori) || !Array.isArray(data.standings) || !Array.isArray(data.cambi) || !data.rose) throw new Error('Formato dati non valido');
+    if (data.cambi.some(t => !Number.isFinite(t.cambi) || !Number.isFinite(t.crediti))) throw new Error('Cambi o crediti non validi');
     if (data.giocatori.some(p => typeof p.nome !== 'string' || !Array.isArray(p.owners) || !(p.ruolo in roles))) throw new Error('Elenco giocatori non valido');
 }
 async function load(day) {
@@ -60,15 +61,28 @@ async function load(day) {
 function playerCard(p) {
     const owners = p.owners;
     const metrics = [['Quotazione', `${num(p.quot)} cr`], ['FVM', num(p.fvm)], ['Fantamedia', num(p.fm)], ['Media voto', num(p.mv)], ['Partite', num(p.pg)]];
-    return `<details class="player"><summary><span class="identity">${roleBadge(p.ruolo)}<span><strong>${esc(p.nome)}</strong><small>${esc(p.sq || 'Squadra non disponibile')}</small></span></span><span class="value">${num(p.quot)} <small>cr</small></span><span class="owner">${owners.length ? esc(owners[0]) + (owners.length > 1 ? ` <span class="muted">+${owners.length - 1}</span>` : '') : '<span class="free">Libero</span>'}</span><span class="chevron" aria-hidden="true">⌄</span></summary><div class="detail"><dl>${metrics.map(([label,value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join('')}</dl><p class="muted">${owners.length ? `Posseduto da: ${owners.map(esc).join(' · ')}` : 'Disponibile sul mercato'}</p></div></details>`;
+    const ownership = owners.length
+        ? `<span class="owner-name">${esc(owners[0])}</span>${owners.length > 1 ? ` <span class="owner-more" title="Apri per vedere le altre ${owners.length - 1} fantasquadre">+${owners.length - 1}</span>` : ''}`
+        : '<span class="free">Svincolato</span>';
+    const ownerDetails = owners.length
+        ? `<div class="owner-details"><p class="owner-label">Fantasquadre che lo possiedono</p><ul class="owner-list">${owners.map(team => `<li class="owner-team">${esc(team)}</li>`).join('')}</ul></div>`
+        : '';
+    return `<details class="player">
+        <summary>
+            <span class="identity">${roleBadge(p.ruolo)}<span><strong>${esc(p.nome)}</strong><small>${esc(p.sq || 'Squadra non disponibile')}</small></span></span>
+            <span class="value">${num(p.quot)} <small>cr</small></span>
+            <span class="owner">${ownership}</span>
+            <span class="chevron" aria-hidden="true">⌄</span>
+        </summary>
+        <div class="detail"><dl>${metrics.map(([label,value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join('')}</dl>${ownerDetails}</div>
+    </details>`;
 }
 function renderPlayers() {
     const query = normalize($('query').value.trim());
     const role = state.role;
-    const ownership = $('ownership').value;
+    const ownership = state.ownership;
     const sorted = state.data.giocatori.filter(p => (!query || p.search.includes(query)) && (!role || p.ruolo === role) && (!ownership || (ownership === 'free' ? !p.owners.length : p.owners.length)));
-    const mode = $('sort').value;
-    sorted.sort((a,b) => (mode === 'role' ? order[a.ruolo] - order[b.ruolo] || b.quot - a.quot : mode === 'value' ? b.quot - a.quot : 0) || a.nome.localeCompare(b.nome, 'it'));
+    sorted.sort((a,b) => order[a.ruolo] - order[b.ruolo] || b.quot - a.quot || a.nome.localeCompare(b.nome, 'it'));
     $('count').textContent = `${sorted.length} ${sorted.length === 1 ? 'risultato' : 'risultati'} su ${state.data.giocatori.length}`;
     $('player-list').innerHTML = sorted.map(playerCard).join('') || '<p class="empty">Nessun risultato. Prova un altro nome o azzera i filtri.</p>';
 }
@@ -92,7 +106,7 @@ function renderTeams() {
     }).join('');
 }
 function renderMarket() {
-    $('market-list').innerHTML = [...state.data.cambi].sort((a,b) => a.team.localeCompare(b.team, 'it')).map(t => `<tr><th scope="row">${esc(t.team)}</th><td>${num(t.cambi)}</td><td>${num(t.crediti)} <small>cr</small></td><td>${esc(t.extra || '—')}</td></tr>`).join('');
+    $('market-list').innerHTML = [...state.data.cambi].sort((a,b) => b.cambi - a.cambi || b.crediti - a.crediti || a.team.localeCompare(b.team, 'it')).map(t => `<tr><th scope="row">${esc(t.team)}</th><td>${num(t.cambi)}</td><td>${num(t.crediti)} <small>cr</small></td><td>${esc(t.extra || '—')}</td></tr>`).join('');
 }
 function render() {
     if (!state.data) return;
@@ -115,6 +129,7 @@ $('filters').addEventListener('input', () => {
 $('filters').addEventListener('reset', () => {
     clearTimeout(timer);
     selectRole('');
+    selectOwnership('');
     setTimeout(() => { if (state.data) renderPlayers(); }, 0);
 });
 function selectRole(role) {
@@ -125,6 +140,16 @@ $('role-filters').addEventListener('click', event => {
     const button = event.target.closest('[data-role]');
     if (!button) return;
     selectRole(button.dataset.role);
+    if (state.data) renderPlayers();
+});
+function selectOwnership(ownership) {
+    state.ownership = ownership;
+    document.querySelectorAll('[data-ownership]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.ownership === ownership)));
+}
+$('ownership-filters').addEventListener('click', event => {
+    const button = event.target.closest('[data-ownership]');
+    if (!button) return;
+    selectOwnership(button.dataset.ownership);
     if (state.data) renderPlayers();
 });
 $('days').addEventListener('click', event => {

@@ -160,7 +160,7 @@ main {
     background:var(--panel);
     border:1px solid var(--line);
     border-radius:14px;
-    padding:20px
+    padding:14px
 }
 .toolbar label {
     display:grid;
@@ -173,13 +173,25 @@ main {
     font-size:.95rem;
     background:var(--bg)
 }
+.search-row {
+    display:flex;
+    align-items:end;
+    gap:10px;
+    margin-bottom:10px;
+}
 .search-label {
-    margin-bottom:16px
+    flex:1;
+    min-width:0;
+}
+.search-row > button {
+    min-height:44px;
+    font-size:.8rem;
+    padding:10px 8px;
 }
 .filter-grid {
-    display:grid;
-    grid-template-columns:auto 1fr 1fr auto;
-    gap:12px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px 20px;
     align-items:end
 }
 .subtle {
@@ -198,7 +210,7 @@ main {
 }
 .list-head {
     display:grid;
-    grid-template-columns:2fr .7fr 1.5fr;
+    grid-template-columns:1.5fr .6fr 2fr;
     gap:16px;
     padding:8px 46px 8px 18px;
     color:var(--muted);
@@ -213,7 +225,7 @@ main {
 }
 .player summary {
     display:grid;
-    grid-template-columns:2fr .7fr 1.5fr 16px;
+    grid-template-columns:1.5fr .6fr 2fr 16px;
     gap:16px;
     align-items:center;
     padding:15px 18px
@@ -396,7 +408,7 @@ footer {
     gap:16px;
     margin-bottom:24px
 }
-.day-picker>span,.role-filter legend {
+.day-picker>span,.role-filter legend,.ownership-filter legend {
     font-size:.8rem;
     color:var(--muted)
 }
@@ -415,13 +427,13 @@ footer {
     color:var(--accent);
     font-weight:700
 }
-.role-filter {
+.role-filter,.ownership-filter {
     border:0;
     padding:0;
     margin:0;
     min-width:0
 }
-.role-filter legend {
+.role-filter legend,.ownership-filter legend {
     margin-bottom:6px;
     padding:0
 }
@@ -429,14 +441,7 @@ footer {
     content-visibility:auto;
     contain-intrinsic-size:auto 82px
 }
-@media(max-width:900px) {
-    .filter-grid {
-        grid-template-columns:1fr 1fr
-    }
-    .role-filter {
-        grid-column:1/-1
-    }
-}
+
 @media(max-width:650px) {
     .day-picker {
         align-items:flex-start
@@ -467,9 +472,7 @@ footer {
     .toolbar {
         padding:14px
     }
-    .filter-grid {
-        grid-template-columns:1fr 1fr
-    }
+
     .section-heading {
         align-items:start
     }
@@ -488,8 +491,8 @@ footer {
     .owner {
         grid-column:1/3;
         grid-row:2;
-        margin-left:38px;
-        font-size:.75rem
+        margin-top:6px;
+        font-size:.85rem
     }
     .player .chevron {
         grid-column:3;
@@ -580,4 +583,38 @@ summary:focus-visible {
 }
 #role-filters button[data-role]:not([data-role=""])[aria-pressed=true] {
     box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text);
+}
+
+
+.owner-label {
+    display: block;
+    color: var(--muted);
+    font-size: .75rem;
+    margin-bottom: 5px;
+}
+.owner-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.owner-team {
+    background: var(--raised);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 4px 8px;
+    color: var(--text);
+    font-weight: 500;
+    max-width: 100%;
+}
+
+.owner-name {
+    font-weight: 500;
+}
+.owner-more {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 5px;
+    background: var(--raised);
+    color: var(--text);
+    white-space: nowrap;
 }
