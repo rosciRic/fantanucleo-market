@@ -1,0 +1,13 @@
+name: Check pull request
+on: pull_request
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: python3 -m pip install -r requirements.txt
+      - run: python3 -m unittest discover -s tests
+      - run: node --check app.js
+      - run: python3 site_data.py --build

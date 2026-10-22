@@ -7,7 +7,7 @@ export_json.py — Genera data_{num}.json per Fantanucleo Market unificando:
 4. Database globale calciatori (530+) con indicatori di possesso e statistiche
 """
 import csv
-import json
+import re
 from pathlib import Path
 
 def is_asterisk(s):
@@ -112,7 +112,7 @@ def generate_giornata_json(giornata_dir: Path, num: int) -> dict:
                     "costo": costo,
                     "sq": sq,
                     "qta": qta,
-                    "fl": is_fl
+                    "fl": is_fl or qinfo.get("is_fl", False)
                 })
 
     # 5. Svincolati
@@ -177,7 +177,7 @@ def generate_giornata_json(giornata_dir: Path, num: int) -> dict:
                     "nome": p["nome"],
                     "ruolo": p["ruolo"] or qinfo.get("ruolo", ""),
                     "sq": p["sq"] or qinfo.get("sq", ""),
-                    "quot": p["qta"] or p["costo"],
+                    "quot": p["qta"],
                     "qti": qinfo.get("qti", 0),
                     "diff": qinfo.get("diff", 0),
                     "fvm": 0,
@@ -213,7 +213,7 @@ def generate_giornata_json(giornata_dir: Path, num: int) -> dict:
         else:
             db_map[key]["isSvincolato"] = True
             if sv["fvm"]: db_map[key]["fvm"] = sv["fvm"]
-            if sv["quot"]: db_map[key]["quot"] = sv["quot"]
+            if key not in quot_map: db_map[key]["quot"] = sv["quot"]
             if sv["sq"]: db_map[key]["sq"] = sv["sq"]
             if sv["fm"]: db_map[key]["fm"] = sv["fm"]
             if sv["mv"]: db_map[key]["mv"] = sv["mv"]
@@ -237,17 +237,23 @@ def generate_giornata_json(giornata_dir: Path, num: int) -> dict:
     }
 
 def export_all(base_dir: Path):
-    for num in range(1, 100):
-        g_dir = base_dir / f"giornata_{num}"
-        if not g_dir.exists():
-            break
+    from site_data import validate, atomic_json
+    folders = [p for p in base_dir.glob("giornata_*") if p.is_dir() and re.fullmatch(r"giornata_[1-9]\d*", p.name)]
+    prepared = []
+    for g_dir in sorted(folders, key=lambda p: int(p.name.split("_")[-1])):
+        num = int(g_dir.name.split("_")[-1])
         data = generate_giornata_json(g_dir, num)
         out_file = g_dir / f"data_{num}.json"
-        with open(out_file, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, separators=(',', ':'))
+        validate(data, num)
+        prepared.append((out_file, data))
+    # Validate the entire archive before replacing any generated file.
+    for out_file, data in prepared:
+        atomic_json(out_file, data)
         size_kb = out_file.stat().st_size / 1024
         print(f"✓ Generato {out_file.name} ({len(data['giocatori'])} giocatori, {size_kb:.1f} KB)")
 
 if __name__ == "__main__":
     repo_dir = Path(__file__).resolve().parent
     export_all(repo_dir)
+    from site_data import atomic_json, manifest
+    atomic_json(repo_dir / "manifest.json", manifest(repo_dir))

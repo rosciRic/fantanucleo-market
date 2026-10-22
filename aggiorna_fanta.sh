@@ -1,6 +1,6 @@
 #!/bin/bash
 # ⚽ Fantanucleo Market — Script di aggiornamento automatico
-# Esegui questo script dalla cartella Download per elaborare i file ed inviare le modifiche su GitHub!
+# Importa e valida i dati. Aggiungi --publish per commit e push su GitHub.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -13,4 +13,8 @@ else
     exit 1
 fi
 
-exec python3 "$PROJECT_DIR/organizza_fanta.py" "$@"
+PYTHON_BIN=python3
+if [ -x "$PROJECT_DIR/.venv/bin/python" ]; then
+    PYTHON_BIN="$PROJECT_DIR/.venv/bin/python"
+fi
+exec "$PYTHON_BIN" "$PROJECT_DIR/organizza_fanta.py" "$@"

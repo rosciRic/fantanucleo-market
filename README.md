@@ -1,111 +1,146 @@
-# ⚽ Fantanucleo Market 26/27 — Web Dashboard
+# Fantanucleo Market 26/27
 
-> Web Dashboard ultra-veloce, responsive e offline-first per la consultazione live e storica della lega di Fantacalcio **Fantanucleo** (Stagione 2026/2027).
+Dashboard statica della lega: calciatori, rose, classifica, crediti e cambi.
 
-🌐 **Sito Live (GitHub Pages)**: [https://rosciric.github.io/fantanucleo-market/](https://rosciric.github.io/fantanucleo-market/)
+**[Apri il sito](https://rosciric.github.io/fantanucleo-market/)** · [Stato pubblicazione](https://github.com/rosciRic/fantanucleo-market/actions)
 
-La pubblicazione usa GitHub Actions. In **Settings → Pages → Build and deployment**, seleziona **GitHub Actions** come sorgente. Il workflow pubblica solo frontend, manifest e JSON delle giornate.
+## Come funziona
 
----
+- Frontend HTML, CSS e JavaScript senza framework, font esterni o dipendenze da scaricare nel browser.
+- Tema Stadio Notturno e tema chiaro, con preferenza salvata sul dispositivo.
+- Pulsanti per giornate e ruoli; listone completo a scorrimento, senza paginazione. Ricerca per nome, club o fantasquadra; filtri possesso e ordinamento.
+- Dettagli dei giocatori e rose apribili anche da tastiera; reparti, punti, quotazioni e costo di acquisto.
+- Un JSON per giornata, caricato su richiesta. Cache in memoria delle ultime tre giornate consultate, annullamento delle richieste superate, timeout e pulsante per riprovare.
+- Python prepara e controlla i dati sul computer. GitHub Pages serve solo file statici: non occorrono un server applicativo, un database remoto o token nel frontend.
 
-## 🌟 Caratteristiche Principali
+## Preparazione iniziale
 
-- **🔍 Database Giocatori & Possesso (530+ Calciatori)**:
-  - Indicatore immediato: 🟢 **Libero** (svincolato) oppure **Preso** (fantasquadra o `2x +1` se posseduto in più gironi).
-  - **Dettaglio Inline**: Cliccando su qualsiasi riga si apre il cassetto con statistiche complete (FVM, Fantamedia, Media Voto, Partite) o elenco di tutte le fantasquadre proprietarie.
-  - **Filtri & Ordinamento Rapido**: Filtro istantaneo per Ruolo (P, D, C, A), per Stato (Svincolati / Posseduti) e chip di ordinamento (Ruolo, Quotazione ↓, Nome A-Z).
-- **📋 Rose degli Avversari (18 Squadre)**:
-  - Classifica generale con punti e valore complessivo rosa (`cr`).
-  - **Visualizzazione Tattica per Reparto**: I 23 calciatori di ogni rosa sono divisi ordinatamente in Portieri 🧤, Difensori 🛡️, Centrocampisti ⚙️ e Attaccanti ⚡, ordinati per valore decrescente.
-- **💰 Crediti Residui & Cambi**:
-  - Tabella cambi rimasti con barra di avanzamento colorata a soglie visive e crediti residui.
-- **⚡ Architettura JSON-First & Prestazioni 60 FPS**:
-  - Dati pre-aggregati a monte in un singolo file compatto `data_N.json` per giornata (~110 KB).
-  - Virtualizzazione mobile con `content-visibility: auto` e pulsante flottante "Torna in Cima".
-
----
-
-## 🔄 Guida Operativa: Come Aggiornare i Dati
-
-Per aggiornare il sito a ogni giornata usa lo script incluso nella repository. Cerca i file Excel nella cartella `~/Downloads`, prepara i dati e li pubblica su GitHub Pages tramite Git.
-
-### 1. Aggiornamento Settimanale Standard (Nuova Giornata)
-
-Al termine delle partite di campionato e del calcolo dei risultati:
-
-1. Scarica da Fantacalcio.it il file dei risultati della giornata e il listone delle quotazioni. Lasciali nella cartella `~/Downloads`.
-2. Se è la prima volta, installa la dipendenza Python:
-   ```bash
-   cd ~/Projects/fantanucleo_26_27
-   python3 -m pip install openpyxl
-   ```
-3. A ogni nuova giornata apri il terminale ed esegui:
-   ```bash
-   cd ~/Projects/fantanucleo_26_27
-   python3 organizza_fanta.py
-   ```
-   In alternativa, dalla cartella del progetto:
-   ```bash
-   ./aggiorna_fanta.sh
-   ```
-4. Lo script ricava la giornata dai nomi dei file, controlla i dati, genera JSON e CSV, aggiorna `manifest.json` e archivia gli Excel elaborati in `giornata_N/`.
-5. Se i dati sono validi, crea un commit limitato ai file di quella giornata e al manifest, poi esegue `git push`. GitHub Actions pubblica il sito; puoi seguirne l'esito nella scheda **Actions** della repository.
-6. Lo script apre anche la dashboard locale su `http://localhost:8080` per controllare i dati.
-
-**Prima pubblicazione:** configura l'accesso GitHub dal computer con Git Credential Manager o GitHub CLI (`gh auth login` e `gh auth setup-git`). Non inserire token GitHub nei file del progetto.
-
----
-
-### 2. Aggiornamento Infrasettimanale (Solo Listone Quotazioni)
-
-Se a metà settimana cambiano le quotazioni di mercato e non ci sono nuove giornate da calcolare:
-
-1. Scarica il nuovo Excel delle quotazioni (`Quotazioni_Fantacalcio*.xlsx`) in `~/Downloads`.
-2. Esegui lo stesso comando dalla cartella del progetto:
-   ```bash
-   cd ~/Projects/fantanucleo_26_27
-   python3 organizza_fanta.py
-   ```
-   Se non trova file `Risultati*.xlsx`, aggiorna le quotazioni dell'ultima giornata, rigenera il JSON, aggiorna il manifest e pubblica i file aggiornati.
-
----
-
-### 3. Test & Sviluppo in Locale
-
-Per visualizzare e testare il sito in locale senza inviare modifiche su GitHub:
+Servono Python 3.10 o successivo e Git. Node.js serve solo per il controllo sintattico JavaScript in sviluppo/CI.
 
 ```bash
-# Avvia il server web locale
-python3 -m http.server 8000
-
-# Apri nel browser
-http://localhost:8000
+cd ~/Projects/fantanucleo_26_27
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt
 ```
 
----
+Configura l'accesso Git al tuo account, per esempio con GitHub CLI:
 
-## 📁 Struttura della Repository
-
-```
-fantanucleo_26_27/
-├── index.html            # Markup semantico dell'applicazione (3 tab)
-├── style.css             # Design system Stadio Notturno, responsive
-├── app.js                # Logica frontend vanilla (caricamento JSON, filtri, accordion)
-├── manifest.json         # Registro JSON delle giornate disponibili ([1, 2, 3, ...])
-├── organizza_fanta.py    # Script master di parsing Excel, archiviazione e auto-deploy
-├── export_json.py        # Generatore JSON unificato pre-calcolato (data_N.json)
-├── aggiorna_fanta.sh     # Wrapper bash per l'aggiornamento dei dati
-└── giornata_N/           # Dati per ogni giornata di campionato
-    ├── data_N.json       # JSON unificato consumato dall'app web (~110 KB)
-    ├── rose_N.csv
-    ├── svincolati_N.csv
-    ├── quotazioni_N.csv
-    ├── cambi_N.csv
-    └── classifiche_campionato_N.csv
+```bash
+gh auth login
+gh auth setup-git
 ```
 
----
+Le credenziali restano gestite dagli strumenti Git: non inserirle nei sorgenti o nell'URL della repository.
 
-## 📄 Licenza
+In **Settings → Pages → Build and deployment**, seleziona **GitHub Actions**. Ogni push su `main` avvia controlli e pubblicazione; le pull request eseguono soltanto i controlli.
 
-Progetto distribuito sotto licenza MIT.
+## Aggiornare il sito a ogni giornata
+
+Scarica da Fantacalcio gli Excel dei risultati e delle quotazioni. Nei comandi seguenti sostituisci i nomi di esempio con quelli effettivi.
+
+### 1. Aggiorna il checkout e controlla i file
+
+```bash
+cd ~/Projects/fantanucleo_26_27
+git pull --ff-only
+./aggiorna_fanta.sh "$HOME/Downloads/Risultati_8ª_2026_2027.xlsx" \
+  --quotes "$HOME/Downloads/Quotazioni_Fantacalcio.xlsx" --dry-run
+```
+
+`--dry-run` legge e valida i file senza modificare i dati. Se la giornata non è riconoscibile dal nome o dal foglio, aggiungi `--day 8`.
+
+### 2. Importa e pubblica
+
+```bash
+./aggiorna_fanta.sh "$HOME/Downloads/Risultati_8ª_2026_2027.xlsx" \
+  --quotes "$HOME/Downloads/Quotazioni_Fantacalcio.xlsx" --publish
+```
+
+Lo script:
+
+1. Prepara CSV e JSON in una cartella temporanea.
+2. Verifica le 18 squadre, le rose complete, i possessori, i contatori e i valori numerici.
+3. Salva la giornata e aggiorna il manifest solo dopo la validazione. Copia gli Excel nella cartella della giornata; gli originali nei Download restano disponibili.
+4. Con `--publish`, crea un commit limitato ai CSV/JSON della giornata e a `manifest.json`, quindi esegue il push su `main`. Gli Excel restano locali, ignorati da Git.
+
+Il push avvia GitHub Actions: controlla che **Publish GitHub Pages** termini con successo. Il messaggio “Push completato” non significa che il deploy sia già terminato.
+
+**Comando rapido:** se nei Download c'è un solo file risultati e un solo listone `Quotazioni_Fantacalcio*.xlsx`, puoi usare:
+
+```bash
+./aggiorna_fanta.sh --dry-run
+./aggiorna_fanta.sh --publish
+```
+
+Se ci sono più file candidati, lo script si ferma: seleziona i percorsi esplicitamente. Poiché i Download non vengono svuotati, i percorsi espliciti sono consigliati.
+
+### Aggiornare soltanto le quotazioni
+
+```bash
+./aggiorna_fanta.sh --quotes "$HOME/Downloads/Quotazioni_Fantacalcio.xlsx" --dry-run
+./aggiorna_fanta.sh --quotes "$HOME/Downloads/Quotazioni_Fantacalcio.xlsx" --publish
+```
+
+Aggiorna l'ultima giornata disponibile; aggiungi `--day N` per una giornata esistente specifica. Classifica, rose e statistiche restano quelle dell'ultimo file risultati importato per quella giornata. La quotazione del listone prevale su quella del foglio svincolati.
+
+### Importare e vedere l'anteprima prima del push
+
+Senza `--publish` lo script salva **solo in locale**:
+
+```bash
+./aggiorna_fanta.sh "$HOME/Downloads/Risultati_8ª_2026_2027.xlsx" \
+  --quotes "$HOME/Downloads/Quotazioni_Fantacalcio.xlsx"
+python3 site_data.py --build
+python3 -m http.server 8000 --bind 127.0.0.1 --directory _site
+```
+
+Apri [l'anteprima locale](http://127.0.0.1:8000/). Per fermare il server premi `Ctrl+C`. Dopo aver controllato, ripeti il comando di importazione con `--publish`.
+
+Il wrapper usa automaticamente `.venv/bin/python`, quando presente, e funziona da qualsiasi cartella. Puoi usare anche `python3 organizza_fanta.py` con gli stessi argomenti, dopo aver attivato l'ambiente virtuale.
+
+### Se qualcosa si interrompe
+
+- **Dati non validi:** correggi il file sorgente e ripeti `--dry-run`. La giornata precedente resta disponibile.
+- **File già in stage o branch diverso da `main`:** l'importazione locale resta salvata; completa il lavoro Git in corso prima di pubblicare.
+- **Push fallito dopo il commit:** risolvi il problema di rete/autenticazione e riprova `git push origin main`. Non usare un push forzato. Se il remoto contiene altri commit, integra prima quelle modifiche.
+- **Deploy fallito:** apri il log della Action. Il sito pubblicato precedentemente rimane disponibile.
+
+## Sviluppo e controlli
+
+```bash
+source .venv/bin/activate
+python3 -m unittest discover -s tests -v
+node --check app.js
+python3 site_data.py --build
+```
+
+La build valida dati e versione del manifest e copia in `_site/` solo HTML, CSS, JavaScript, manifest e JSON pubblici. I workflow eseguono gli stessi controlli prima del deploy. Non modificare `_site/` direttamente.
+
+Per rigenerare tutti i JSON dai CSV archiviati e aggiornare il manifest:
+
+```bash
+python3 export_json.py
+```
+
+Il manifest usa una versione derivata dal contenuto: una rigenerazione identica non produce aggiornamenti artificiali. I JSON sono generati; correggi gli Excel/CSV sorgente e rigenerali. Quando modifichi CSS o JavaScript, aggiorna anche `?v=` in `index.html` per invalidare la cache degli asset.
+
+## File principali
+
+| File | Funzione |
+| --- | --- |
+| `index.html` | Struttura accessibile e controlli |
+| `style.css` | Palette, temi e layout responsive |
+| `app.js` | Caricamento, ricerca, filtri e viste |
+| `organizza_fanta.py` | Importazione Excel e pubblicazione esplicita |
+| `export_json.py` | Trasformazione CSV → JSON |
+| `site_data.py` | Validazione, manifest e build statica |
+| `aggiorna_fanta.sh` | Comando di aggiornamento |
+| `requirements.txt` | Dipendenza Python versionata |
+| `tests/` | Controlli della pipeline |
+| `giornata_N/` | CSV, JSON e copie locali degli Excel |
+| `.github/workflows/` | Controlli PR e pubblicazione Pages |
+
+## Licenza
+
+Licenza dichiarata dal progetto: MIT.

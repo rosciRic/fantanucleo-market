@@ -27,17 +27,12 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Prepare static site
-        shell: bash
+      - name: Validate and build static site
         run: |
-          mkdir -p _site
-          cp index.html app.js style.css manifest.json _site/
-          for json_file in giornata_*/data_*.json; do
-            [[ -f "$json_file" ]] || continue
-            day_dir="_site/$(dirname "$json_file")"
-            mkdir -p "$day_dir"
-            cp "$json_file" "$day_dir/"
-          done
+          python3 -m pip install -r requirements.txt
+          python3 -m unittest discover -s tests
+          node --check app.js
+          python3 site_data.py --build
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4

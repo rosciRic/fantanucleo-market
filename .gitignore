@@ -15,3 +15,7 @@ docs/
 __pycache__/
 *.pyc
 
+.venv/
+_site/
+.import_*/
+*.json.tmp

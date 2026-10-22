@@ -10,39 +10,31 @@ Genera i CSV essenziali per ogni giornata:
   5. quotazioni_N.csv              → Quotazioni attuali e variazioni dal listone ufficiale
 
 Uso:
-  python3 organizza_fanta.py                  # Elabora tutti gli xlsx trovati
+  python3 organizza_fanta.py                  # Importa una giornata dai Download, senza pubblicare
   python3 organizza_fanta.py percorso.xlsx    # Elabora un file specifico
 """
 import sys
 import re
 import csv
-import json
 import shutil
-import socket
 import tempfile
-from datetime import datetime, timezone
-import webbrowser
 import subprocess
+from zipfile import BadZipFile
 from pathlib import Path
 import openpyxl
 
 DOWNLOADS_DIR = Path.home() / "Downloads"
-FANTA_DIR = Path.home() / "Projects" / "fantanucleo_26_27"
+FANTA_DIR = Path(__file__).resolve().parent
 
 
 def extract_giornata_number(filepath: Path, wb: openpyxl.Workbook) -> int:
     """Ricava il numero della giornata dal nome del file o dal foglio."""
-    match = re.search(r'(\d+)[ªa]?', filepath.name)
-    if match:
-        return int(match.group(1))
-    try:
-        val = str(wb.worksheets[0].cell(row=1, column=1).value or "")
-        m = re.search(r'(\d+)', val)
-        if m:
-            return int(m.group(1))
-    except Exception:
-        pass
-    return 1
+    match = re.search(r'risultati[ _-]*(\d{1,2})(?:[ªa _.-]|$)', filepath.name, re.I)
+    if not match:
+        match = re.search(r'(\d{1,2})\s*[ªa]\s*(?:giornata)?', str(wb.worksheets[0].cell(1, 1).value or ''), re.I)
+    if not match or not 1 <= int(match.group(1)) <= 99:
+        raise ValueError('Giornata non riconosciuta. Usa --day N o Risultati_Nª_2026_2027.xlsx')
+    return int(match.group(1))
 
 
 def cell_str(cell):
@@ -234,20 +226,10 @@ def parse_cambi(sheet):
     return result
 
 
-def parse_listone_file(out_dir: Path = None, num: int = 1):
-    """
-    Cerca il file Excel del listone ufficiale per la giornata e ne estrae le quotazioni.
-    """
-    # Un listone appena scaricato deve prevalere su quello archiviato.
-    candidates = sorted(DOWNLOADS_DIR.glob("Quotazioni_Fantacalcio*.xlsx"), key=lambda p: p.stat().st_mtime, reverse=True)
-    if out_dir and out_dir.exists():
-        candidates.extend(sorted(out_dir.glob("Quotazioni*.xlsx"), key=lambda p: p.stat().st_mtime, reverse=True))
-    candidates.extend(sorted(FANTA_DIR.glob("**/Quotazioni_Fantacalcio*.xlsx"), key=lambda p: p.stat().st_mtime, reverse=True))
-    file_path = candidates[0] if candidates else None
-
-    if not file_path or not file_path.exists():
-        return []
-
+def parse_listone_file(source: Path, num: int):
+    """Legge soltanto il listone selezionato per questa importazione."""
+    file_path = source
+    wb = None
     print(f"  → Lettura listone per G{num} da: {file_path.name}")
     try:
         wb = openpyxl.load_workbook(file_path, data_only=True)
@@ -256,23 +238,25 @@ def parse_listone_file(out_dir: Path = None, num: int = 1):
         parsed = []
         for r in rows[2:]:
             if len(r) >= 8 and r[3] is not None:
-                nome = str(r[3]).replace('*', '').strip()
+                nome = str(r[3]).strip()
                 sq = str(r[4]).strip() if len(r) > 4 else ''
                 ruolo = str(r[1]).strip() if len(r) > 1 else ''
-                qta = str(r[5]).strip() if len(r) > 5 else '0'
                 qti = str(r[6]).strip() if len(r) > 6 else '0'
                 diff = str(r[7]).strip() if len(r) > 7 else '0'
                 
-                # G1 = Qt.I (fallback a Qt.A se 0), G2+ = Qt.A (fallback a Qt.I se 0)
-                if num == 1:
-                    valore = qti if (qti and qti != '0') else qta
-                else:
-                    valore = qta if (qta and qta != '0') else qti
+                # La prima giornata usa Qt.I; zero e valori mancanti sono distinti.
+                selected = r[6] if num == 1 else r[5]
+                fallback = r[5] if num == 1 else r[6]
+                valore = str(selected if selected is not None else fallback).strip()
+                int(valore)  # Rifiuta quotazioni mancanti o non numeriche.
                 parsed.append([nome, sq, ruolo, valore, qti, diff])
         return parsed
     except Exception as e:
         print(f"Errore lettura listone ({file_path.name}): {e}")
         return []
+    finally:
+        if wb:
+            wb.close()
 
 
 def write_csv(path, header, rows):
@@ -283,278 +267,143 @@ def write_csv(path, header, rows):
     return len(rows)
 
 
-def write_giornata_json(giornata_dir: Path, num: int) -> dict:
-    """Rigenera il JSON consumato dal frontend a partire dagli archivi CSV."""
+# Import, preview and publication are separate operations.
+def publish(day):
+    folder = f'giornata_{day}'
+    paths = ['manifest.json'] + [str(p.relative_to(FANTA_DIR)) for p in sorted((FANTA_DIR / folder).iterdir()) if p.suffix in ('.json', '.csv')]
+    def git(*args, capture=False):
+        return subprocess.run(['git', *args], cwd=FANTA_DIR, check=True, text=True, capture_output=capture)
+    branch = git('branch', '--show-current', capture=True).stdout.strip()
+    if branch != 'main':
+        raise ValueError('Pubblicazione consentita da main. I dati locali sono pronti.')
+    staged = git('diff', '--cached', '--name-only', capture=True).stdout.splitlines()
+    if staged:
+        raise ValueError('Ci sono file già in stage: completa quel commit prima di pubblicare i dati.')
+    git('add', '--', *paths)
+    changed = git('diff', '--cached', '--name-only', capture=True).stdout.strip()
+    if changed:
+        git('commit', '-m', f'Aggiornamento dati Giornata {day}', '--only', '--', *paths)
+    git('push', 'origin', 'main')
+    print('Push completato. Controlla il deploy nella scheda Actions di GitHub.')
+
+
+def import_day(results, quotes, day=None, dry_run=False):
     from export_json import generate_giornata_json
-
-    data = generate_giornata_json(giornata_dir, num)
-    with open(giornata_dir / f"data_{num}.json", "w", encoding="utf-8") as f_json:
-        json.dump(data, f_json, ensure_ascii=False, separators=(',', ':'))
-    return data
-
-
-def convert(xlsx_path: Path):
-    if not xlsx_path.exists():
-        print(f"Errore: {xlsx_path} non trovato.")
-        return
-
-    print(f"Elaborazione: {xlsx_path.name}")
-    wb = openpyxl.load_workbook(xlsx_path, data_only=True)
-
-    num = extract_giornata_number(xlsx_path, wb)
-
-    # Per giornate successive alla 2ª, verifica che sia presente anche il file Quotazioni nei Download
-    if num > 2:
-        has_quot_in_dl = any(DOWNLOADS_DIR.glob("Quotazioni_Fantacalcio*.xlsx"))
-        has_quot_in_out = (FANTA_DIR / f"giornata_{num}").exists() and any((FANTA_DIR / f"giornata_{num}").glob("Quotazioni*.xlsx"))
-        if not (has_quot_in_dl or has_quot_in_out):
-            wb.close()
-            print(f"\n⚠️  ATTENZIONE: Trovato il file Risultati per la Giornata {num}, ma MANCA il file delle Quotazioni nei Download!")
-            print(f"👉 Per elaborare la Giornata {num} devi scaricare prima l'Excel delle quotazioni da Fantacalcio.it.")
-            print(f"❌ Nessun dato è stato caricato per la Giornata {num}.\n")
-            return
-
-    out = FANTA_DIR / f"giornata_{num}"
-    out.mkdir(parents=True, exist_ok=True)
-    work = Path(tempfile.mkdtemp(prefix=f".giornata_{num}_", dir=str(FANTA_DIR)))
-    # Se non è arrivato un listone nuovo, usa quello già archiviato durante la fase di staging.
-    for archived_quote in sorted(out.glob("Quotazioni*.xlsx"), key=lambda p: p.stat().st_mtime, reverse=True):
-        shutil.copy2(archived_quote, work / archived_quote.name)
-        break
-
-    # Foglio Risultati
-    ris_name = next((s for s in wb.sheetnames if 'risultat' in s.lower()), None)
-    rose_name = next((s for s in wb.sheetnames if 'rose' in s.lower()), None)
-    svinc_name = next((s for s in wb.sheetnames if 'svincolat' in s.lower()), None)
-    if not (ris_name and rose_name and svinc_name):
-        sheets = wb.sheetnames
-        wb.close()
-        shutil.rmtree(work, ignore_errors=True)
-        print(f"❌ File non riconosciuto: fogli trovati {sheets}. Nessun dato modificato.")
-        return
-    ris_sheet = wb[ris_name]
-    campionato = parse_classifica(ris_sheet)
-
-    # Foglio Rose
-    rose_sheet = wb[rose_name]
-    rose = parse_rose(rose_sheet)
-
-    # Quotazioni Listone Ufficiale
-    quotazioni = parse_listone_file(work, num)
-    quot_map = {}
-    if quotazioni:
-        print(f"  → quotazioni_{num}.csv scritte ({len(quotazioni)} calciatori)")
-        for q in quotazioni:
-            q_nome = q[0].replace('*', '').strip().lower()
-            quot_map[q_nome] = q[3]
-
-    # Foglio Svincolati
-    svinc_sheet = wb[svinc_name]
-    svinc = parse_svincolati(svinc_sheet, quot_map)
-
-    # Cambi & Crediti
-    cambi = parse_cambi(ris_sheet)
-    rose_counts = {}
-    for team, _, _, _ in rose:
-        rose_counts[team] = rose_counts.get(team, 0) + 1
-    if len(campionato) != 18 or len(cambi) != 18 or len(rose_counts) != 18 or any(v != 23 for v in rose_counts.values()):
-        wb.close()
-        shutil.rmtree(work, ignore_errors=True)
-        print(f"❌ Dati incompleti (classifica={len(campionato)}, rose={len(rose_counts)} squadre, cambi={len(cambi)}). Nessun dato modificato.")
-        return
-
-    write_csv(work / f"classifiche_campionato_{num}.csv", ["Tipo", "Posizione", "Fantasquadra", "Punti"], campionato)
-    write_csv(work / f"rose_{num}.csv", ["Fantasquadra", "Ruolo", "Calciatore", "Costo"], rose)
-    if quotazioni:
-        write_csv(work / f"quotazioni_{num}.csv", ["Nome", "Squadra", "Ruolo", "QtA", "QtI", "Diff"], quotazioni)
-    write_csv(work / f"svincolati_{num}.csv", ["Nome", "Squadra", "Ruolo", "PG", "MV", "FM", "FVM", "Quotazione"], svinc)
-    write_csv(work / f"cambi_{num}.csv", ["Fantasquadra", "CambiRimasti", "CreditiRimasti", "CambiExtra"], cambi)
-
-    # Esportazione JSON unificato per la dashboard web
+    from site_data import validate, atomic_json, manifest, days
+    wb = None
     try:
-        g_data = write_giornata_json(work, num)
-        print(f"  → data_{num}.json generato con successo ({len(g_data['giocatori'])} calciatori)")
-    except Exception as e:
-        wb.close()
-        shutil.rmtree(work, ignore_errors=True)
-        print(f"❌ Esportazione JSON fallita: {e}. Il file risultati non è stato archiviato.")
-        return
-
-    # Promuove gli artefatti solo dopo parsing, controlli e generazione JSON riusciti.
-    for artifact in work.glob("*.csv"):
-        artifact.replace(out / artifact.name)
-    (work / f"data_{num}.json").replace(out / f"data_{num}.json")
-    shutil.rmtree(work, ignore_errors=True)
-
-    # ── Organizzazione e rimozione completa da Downloads ──
-    wb.close()
-    dest_ris = out / f"Risultati_{num}ª_2026_2027.xlsx"
-    if xlsx_path.resolve() != dest_ris.resolve():
-        try:
-            if dest_ris.exists():
-                dest_ris.unlink()
-            shutil.move(str(xlsx_path), str(dest_ris))
-            print(f"  → Risultati archiviati in giornata_{num}/Risultati_{num}ª_2026_2027.xlsx")
-        except Exception:
-            pass
-
-    for q_file in list(DOWNLOADS_DIR.glob("Quotazioni_Fantacalcio*.xlsx")):
-        dest_q = out / f"Quotazioni_{num}ª_2026_2027.xlsx"
-        try:
-            if dest_q.exists() and q_file.resolve() != dest_q.resolve():
-                dest_q.unlink()
-            if q_file.resolve() != dest_q.resolve():
-                shutil.move(str(q_file), str(dest_q))
-                print(f"  → Quotazioni archiviate in giornata_{num}/Quotazioni_{num}ª_2026_2027.xlsx")
-            else:
-                q_file.unlink()
-        except Exception:
-            pass
-
-    update_manifest()
-    print(f"  ✓ Giornata {num} elaborata con successo\n")
-    push_to_github(num)
-
-
-def push_to_github(giornata_num):
-    """Esegue git add, commit e push su GitHub per aggiornare GitHub Pages."""
-    try:
-        print(f"🚀 Pubblicazione modifiche su GitHub Pages (G{giornata_num})...")
-        giorno = f"giornata_{giornata_num}"
-        paths = ["manifest.json"] + [f"{giorno}/{name}_{giornata_num}.csv" for name in ("classifiche_campionato", "rose", "svincolati", "cambi")] + [f"{giorno}/data_{giornata_num}.json"]
-        quot_path = FANTA_DIR / giorno / f"quotazioni_{giornata_num}.csv"
-        if quot_path.exists():
-            paths.append(f"{giorno}/quotazioni_{giornata_num}.csv")
-        subprocess.run(['git', 'add', '--', *paths], cwd=str(FANTA_DIR), check=True)
-        commit = subprocess.run(['git', 'commit', '--only', '-m', f"Aggiornamento dati Giornata {giornata_num}", '--', *paths], cwd=str(FANTA_DIR), check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        if commit.returncode != 0:
-            print("  ⚠️ Commit non riuscito o nessuna modifica da pubblicare; push annullato.\n")
-            return
-        res = subprocess.run(['git', 'push'], cwd=str(FANTA_DIR), check=False, capture_output=True, text=True)
-        if res.returncode == 0:
-            print("  ✓ Sito live aggiornato: https://rosciric.github.io/fantanucleo-market/\n")
+        if results:
+            wb = openpyxl.load_workbook(results, data_only=True)
+            day = day or extract_giornata_number(results, wb)
         else:
-            print(f"  ⚠️ Push non riuscito (verificare connessione):\n{res.stderr.strip()}\n")
-    except Exception as e:
-        print(f"  ⚠️ Avviso push GitHub: {e}\n")
-
-
-def update_manifest():
-    giornate = sorted(
-        int(re.search(r'\d+', d.name).group())
-        for d in FANTA_DIR.glob('giornata_*') if d.is_dir()
-    )
-    with open(FANTA_DIR / 'manifest.json', 'w', encoding='utf-8') as f:
-        json.dump({
-            'giornate': giornate,
-            'version': datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
-        }, f)
-
-
-def open_dashboard():
-    PORT = 8080
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        porta_libera = s.connect_ex(('localhost', PORT)) != 0
-
-    if porta_libera:
-        print(f"🌐 Avvio server su http://localhost:{PORT} ...")
-        subprocess.Popen(
-            [sys.executable, '-m', 'http.server', str(PORT)],
-            cwd=str(FANTA_DIR),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True
-        )
-    else:
-        print(f"🌐 Server attivo su http://localhost:{PORT}")
-
-    webbrowser.open(f'http://localhost:{PORT}')
-
-
-def update_latest_quotazioni(candidates_quot):
-    q_file = candidates_quot[0]
-    max_num = 0
-    for d in FANTA_DIR.glob("giornata_*"):
-        if d.is_dir():
-            m = re.search(r'giornata_(\d+)', d.name)
-            if m:
-                max_num = max(max_num, int(m.group(1)))
-                
-    if max_num == 0:
-        print("❌ Nessuna giornata presente per aggiornare le quotazioni.")
-        return
-        
-    out = FANTA_DIR / f"giornata_{max_num}"
-    print(f"🔄 Aggiornamento Listone/Quotazioni per Giornata {max_num}...")
-    work = Path(tempfile.mkdtemp(prefix=".quotazioni_", dir=str(FANTA_DIR)))
-    try:
-        for source_csv in out.glob("*.csv"):
-            shutil.copy2(source_csv, work / source_csv.name)
-        quotazioni = parse_listone_file(work, max_num)
-        if not quotazioni:
-            raise ValueError("il listone non contiene quotazioni leggibili")
-        write_csv(work / f"quotazioni_{max_num}.csv", ["Nome", "Squadra", "Ruolo", "QtA", "QtI", "Diff"], quotazioni)
-        g_data = write_giornata_json(work, max_num)
-        for name in (f"quotazioni_{max_num}.csv", f"data_{max_num}.json"):
-            (work / name).replace(out / name)
-        print(f"  → quotazioni_{max_num}.csv e data_{max_num}.json aggiornati ({len(g_data['giocatori'])} calciatori)")
-    except Exception as e:
-        print(f"❌ Aggiornamento listone fallito: {e}. Gli artefatti precedenti restano invariati.")
-        shutil.rmtree(work, ignore_errors=True)
-        return
-    shutil.rmtree(work, ignore_errors=True)
-
-    # Archivia il nuovo Excel dopo avere promosso con successo CSV e JSON.
-    dest_q = out / f"Quotazioni_{max_num}ª_2026_2027.xlsx"
-    try:
-        for old_q in out.glob("Quotazioni*.xlsx"):
-            old_q.unlink()
-        shutil.move(str(q_file), str(dest_q))
-        print(f"  → Nuovo file listone archiviato in {dest_q.name}")
-    except Exception as e:
-        print(f"  ⚠️ CSV e JSON aggiornati, ma non è stato possibile archiviare l'Excel: {e}")
-
-    update_manifest()
-    push_to_github(max_num)
+            available = days(FANTA_DIR)
+            if not available:
+                raise ValueError('Importa prima un file risultati.')
+            day = day or available[-1]
+        output = FANTA_DIR / f'giornata_{day}'
+        if not results and not output.is_dir():
+            raise ValueError('La giornata da aggiornare non esiste.')
+        if quotes is None:
+            archived = list(output.glob('Quotazioni*.xlsx'))
+            if len(archived) == 1:
+                quotes = archived[0]
+        if quotes is None:
+            raise ValueError('Serve un listone quotazioni esplicito o già archiviato per questa giornata.')
+        with tempfile.TemporaryDirectory(prefix='.import_', dir=FANTA_DIR) as temp:
+            staging = Path(temp)
+            if output.exists():
+                for source in output.glob('*.csv'):
+                    shutil.copy2(source, staging / source.name)
+            values = parse_listone_file(quotes, day)
+            if not values:
+                raise ValueError('Listone vuoto o non riconosciuto.')
+            write_csv(staging / f'quotazioni_{day}.csv', ['Nome','Squadra','Ruolo','QtA','QtI','Diff'], values)
+            if wb:
+                def sheet(part):
+                    names = [s for s in wb.sheetnames if part in s.lower()]
+                    if len(names) != 1:
+                        raise ValueError(f'Foglio {part} mancante o ambiguo.')
+                    return wb[names[0]]
+                results_sheet = sheet('risultat')
+                tables = [
+                    ('classifiche_campionato', ['Tipo','Posizione','Fantasquadra','Punti'], parse_classifica(results_sheet)),
+                    ('rose', ['Fantasquadra','Ruolo','Calciatore','Costo'], parse_rose(sheet('rose'))),
+                    ('cambi', ['Fantasquadra','CambiRimasti','CreditiRimasti','CambiExtra'], parse_cambi(results_sheet)),
+                    ('svincolati', ['Nome','Squadra','Ruolo','PG','MV','FM','FVM','Quotazione'], parse_svincolati(sheet('svincolat'), {q[0].replace('*','').strip().lower(): q[3] for q in values})),
+                ]
+                for name, header, rows in tables:
+                    write_csv(staging / f'{name}_{day}.csv', header, rows)
+            data = generate_giornata_json(staging, day)
+            validate(data, day)
+            atomic_json(staging / f'data_{day}.json', data)
+            print(f'G{day}: {len(data["giocatori"])} giocatori, {len(data["rose"])} rose. Dati validi.')
+            if dry_run:
+                print('Simulazione completata: nessun dato o file sorgente modificato.')
+                return day
+            # Keep the original downloads. Copy only the exact files used in this import.
+            shutil.copy2(quotes, staging / f'Quotazioni_{day}ª_2026_2027.xlsx')
+            if results:
+                shutil.copy2(results, staging / f'Risultati_{day}ª_2026_2027.xlsx')
+            backup = Path(temp) / 'previous'
+            if output.exists():
+                shutil.copytree(output, backup)
+            output.mkdir(exist_ok=True)
+            try:
+                for source in staging.iterdir():
+                    if source.is_file():
+                        source.replace(output / source.name)
+                atomic_json(FANTA_DIR / 'manifest.json', manifest(FANTA_DIR))
+            except Exception:
+                shutil.rmtree(output)
+                if backup.exists():
+                    shutil.copytree(backup, output)
+                raise
+            print(f'Dati salvati in {output}.')
+            return day
+    finally:
+        if wb:
+            wb.close()
 
 
 def main():
-    FANTA_DIR.mkdir(parents=True, exist_ok=True)
-
-    if len(sys.argv) > 1:
-        convert(Path(sys.argv[1]))
-        open_dashboard()
-        return
-
-    seen = set()
-    candidates_ris = []
-    for f in sorted(
-        list(DOWNLOADS_DIR.glob("Risultati*.xlsx"))
-        + [f for f in DOWNLOADS_DIR.glob("*.xlsx") if 'risultati' in f.name.lower()]
-    ):
-        resolved = f.resolve()
-        if resolved not in seen:
-            seen.add(resolved)
-            candidates_ris.append(f)
-
-    candidates_quot = sorted(list(DOWNLOADS_DIR.glob("Quotazioni_Fantacalcio*.xlsx")))
-
-    if not candidates_ris:
-        if candidates_quot:
-            print("ℹ️ Trovato file Quotazioni nei Download ma nessun Risultato. Procedo all'aggiornamento del solo listone...")
-            update_latest_quotazioni(candidates_quot)
-        else:
-            print("Nessun nuovo file Risultati.xlsx o Quotazioni.xlsx trovato nei Download.")
-        open_dashboard()
-        return
-
-    for xlsx in candidates_ris:
-        if not xlsx.exists():
-            continue
-        convert(xlsx)
-
-    open_dashboard()
+    import argparse
+    parser = argparse.ArgumentParser(description='Importa e valida una giornata Fantanucleo. Pubblicazione solo con --publish.')
+    parser.add_argument('results', nargs='?', type=Path, help='Excel risultati (facoltativo per aggiornare solo le quotazioni)')
+    parser.add_argument('--quotes', type=Path, help='Excel quotazioni da associare')
+    parser.add_argument('--day', type=int, choices=range(1, 100), metavar='N')
+    parser.add_argument('--downloads', type=Path, default=DOWNLOADS_DIR)
+    action = parser.add_mutually_exclusive_group()
+    action.add_argument('--dry-run', action='store_true', help='Valida senza modificare i dati')
+    action.add_argument('--publish', action='store_true', help='Importa, committa i dati e fa push su main')
+    args = parser.parse_args()
+    try:
+        results, quotes = args.results, args.quotes
+        # Explicit inputs bypass discovery of unrelated results in Downloads.
+        if results is None and quotes is None:
+            candidates = [p for p in args.downloads.glob('*.xlsx') if 'risultati' in p.name.lower()]
+            if len(candidates) > 1:
+                raise ValueError('Più file risultati trovati: indica esplicitamente quello da importare.')
+            results = candidates[0] if candidates else None
+        if quotes is None:
+            candidates = list(args.downloads.glob('Quotazioni_Fantacalcio*.xlsx'))
+            if len(candidates) > 1:
+                raise ValueError('Più listoni trovati: selezionane uno con --quotes.')
+            quotes = candidates[0] if candidates else None
+        if results is None and quotes is None:
+            raise ValueError('Nessun Excel trovato. Indica i percorsi dei file o usa --downloads.')
+        for path in (results, quotes):
+            if path and not path.is_file():
+                raise ValueError(f'File non trovato: {path}')
+        day = import_day(results, quotes, args.day, args.dry_run)
+        if args.publish:
+            publish(day)
+        elif not args.dry_run:
+            print('Anteprima: python3 -m http.server 8000 --bind 127.0.0.1. Aggiungi --publish per pubblicare.')
+        return 0
+    except (ValueError, OSError, KeyError, BadZipFile, openpyxl.utils.exceptions.InvalidFileException, subprocess.CalledProcessError) as error:
+        print(f'Errore: {error}', file=sys.stderr)
+        return 1
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

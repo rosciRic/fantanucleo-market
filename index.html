@@ -1,140 +1,90 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fantanucleo Market 26/27</title>
-    <meta name="description" content="Ricerca Calciatori, Possesso Squadre e Crediti — Fantanucleo Market 26/27">
-    <link rel="stylesheet" href="style.css?v=25">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="description" content="Fantanucleo: calciatori, rose e mercato della lega 2026/27.">
+    <meta name="color-scheme" content="dark light">
+    <title>Fantanucleo · Market 26/27</title>
+    <link rel="stylesheet" href="style.css?v=27">
+    <script src="app.js?v=27" defer></script>
 </head>
 <body>
-
-<header class="bar">
-    <div class="logo">
-        <span class="logo-icon">⚽</span>
-        <span class="logo-text">Fantanucleo</span>
-        <span class="badge-market">MARKET</span>
-        <span class="dim">26/27</span>
-    </div>
-
-    <nav class="tabs">
-        <button class="t active" data-v="giocatori">
-            <span class="tab-icon">🔍</span> Giocatori
-        </button>
-        <button class="t" data-v="rose">
-            <span class="tab-icon">📋</span> Rose
-        </button>
-        <button class="t" data-v="mercato">
-            <span class="tab-icon">💰</span> Crediti & Cambi
-        </button>
-    </nav>
-
-    <div class="bar-right">
-        <div class="gn-nav">
-            <button class="gn-btn" id="gnPrev" title="Giornata precedente" aria-label="Giornata precedente">‹</button>
-            <button class="gn-label" id="gnLabel" title="Seleziona giornata" aria-label="Seleziona giornata">G1 <span class="gn-arrow">▾</span></button>
-            <button class="gn-btn" id="gnNext" title="Giornata successiva" aria-label="Giornata successiva">›</button>
+    <a class="skip" href="#main">Vai ai contenuti</a>
+    <header class="header">
+        <div class="brand">
+            <span class="brand-mark" aria-hidden="true">F</span>
+            <div><strong>Fantanucleo</strong><small>MARKET / 26–27</small></div>
         </div>
-    </div>
-</header>
-
-<!-- picker giornate -->
-<div class="picker" id="picker"></div>
-
-<div class="historic-banner" id="historicBanner" style="display:none;"></div>
-<div class="load-status" id="loadStatus" role="status" aria-live="polite"></div>
-
-<main>
-
-    <!-- GIOCATORI & POSSESSO -->
-    <section class="v on" id="v-giocatori">
-        <div class="toolbar-card">
-            <div class="search-wrap">
-                <div class="search-input-box">
-                    <span class="search-icon">🔍</span>
-                    <input id="qGio" type="search" class="search" placeholder="Cerca calciatore o squadra Serie A…">
-                    <button id="searchClearGio" class="search-clear" aria-label="Cancella ricerca" title="Cancella ricerca">✕</button>
+        <button id="theme" aria-label="Attiva tema chiaro">Tema chiaro</button>
+    </header>
+    <main id="main" tabindex="-1">
+        <div class="intro">
+            <div><p class="eyebrow">Il mercato della tua lega</p><h1>Ogni scelta, tutti i dati.</h1></div>
+            <p id="edition" class="muted">Caricamento…</p>
+        </div>
+        <div class="day-picker">
+            <span id="days-label">Giornata</span>
+            <div id="days" class="chips" role="group" aria-labelledby="days-label"></div>
+        </div>
+        <nav class="tabs" aria-label="Sezioni">
+            <button data-view="players" aria-current="page">Giocatori</button>
+            <button data-view="teams">Rose e classifica</button>
+            <button data-view="market">Crediti e cambi</button>
+        </nav>
+        <div id="feedback" role="status" aria-live="polite"></div>
+        <button id="retry" hidden>Riprova caricamento</button>
+        <div id="content" aria-busy="true" hidden>
+            <section id="players" aria-label="Giocatori">
+                <form id="filters" class="toolbar" role="search">
+                    <label class="search-label">Cerca calciatore o squadra
+                        <input id="query" type="search" placeholder="Nome, squadra o fantasquadra…" autocomplete="off">
+                    </label>
+                    <div class="filter-grid">
+                        <fieldset class="role-filter">
+                            <legend>Ruolo</legend>
+                            <div id="role-filters" class="chips">
+                                <button type="button" data-role="" aria-pressed="true">Tutti</button>
+                                <button type="button" data-role="P" aria-label="Portieri" aria-pressed="false">P</button>
+                                <button type="button" data-role="D" aria-label="Difensori" aria-pressed="false">D</button>
+                                <button type="button" data-role="C" aria-label="Centrocampisti" aria-pressed="false">C</button>
+                                <button type="button" data-role="A" aria-label="Attaccanti" aria-pressed="false">A</button>
+                            </div>
+                        </fieldset>
+                        <label>Possesso
+                            <select id="ownership">
+                                <option value="">Tutti</option><option value="free">Svincolati</option><option value="owned">Posseduti</option>
+                            </select>
+                        </label>
+                        <label>Ordina per
+                            <select id="sort">
+                                <option value="role">Ruolo e quotazione</option><option value="value">Quotazione</option>
+                                <option value="name">Nome</option><option value="fm">Fantamedia</option>
+                            </select>
+                        </label>
+                        <button type="reset" class="subtle">Azzera filtri</button>
+                    </div>
+                </form>
+                <div class="section-heading"><h2>Calciatori</h2><span id="count" class="muted" role="status"></span></div>
+                <div class="list-head" aria-hidden="true"><span>Calciatore</span><span>Quotazione</span><span>Possesso</span></div>
+                <div id="player-list"></div>
+            </section>
+            <section id="teams" hidden aria-label="Rose e classifica">
+                <div class="section-heading"><h2>Rose e classifica</h2><span class="muted">Apri una squadra per vedere i reparti</span></div>
+                <div id="team-list"></div>
+            </section>
+            <section id="market" hidden aria-label="Crediti e cambi">
+                <div class="section-heading"><h2>Risorse per il mercato</h2><span class="muted">Disponibilità per fantasquadra</span></div>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th scope="col">Squadra</th><th scope="col">Cambi rimasti</th><th scope="col">Crediti residui</th><th scope="col">Extra</th></tr></thead>
+                        <tbody id="market-list"></tbody>
+                    </table>
                 </div>
-            </div>
-
-            <div class="filter-row">
-                <div class="pill-group">
-                    <span class="filter-label">Ruolo:</span>
-                    <button class="pill-gio-r pill on" data-r="">Tutti <span class="pill-cnt" id="cnt-gio-all"></span></button>
-                    <button class="pill-gio-r pill pp" data-r="P">P <span class="pill-cnt" id="cnt-gio-p"></span></button>
-                    <button class="pill-gio-r pill pd" data-r="D">D <span class="pill-cnt" id="cnt-gio-d"></span></button>
-                    <button class="pill-gio-r pill pc" data-r="C">C <span class="pill-cnt" id="cnt-gio-c"></span></button>
-                    <button class="pill-gio-r pill pa" data-r="A">A <span class="pill-cnt" id="cnt-gio-a"></span></button>
-                </div>
-
-                <div class="pill-group">
-                    <span class="filter-label">Stato:</span>
-                    <button class="pill-gio-s pill on" data-st="">Tutti</button>
-                    <button class="pill-gio-s pill st-svinc" data-st="svincolato">Svincolati</button>
-                    <button class="pill-gio-s pill st-poss" data-st="posseduto">Posseduti</button>
-                </div>
-
-                <button id="btnResetGio" class="btn-reset-filters" style="display:none;" aria-label="Reset filtri" title="Reset filtri">✕ Reset</button>
-            </div>
-
-            <div class="sort-group">
-                <span class="sort-label">Ordina:</span>
-                <button class="pill-sort on" data-sort="default">Ruolo</button>
-                <button class="pill-sort" data-sort="quot_desc">Quotazione ↓</button>
-                <button class="pill-sort" data-sort="nome_asc">Nome A-Z</button>
-            </div>
-            
-            <span class="cnt-badge" id="cntGio"></span>
+            </section>
         </div>
-
-        <div class="box full-box">
-            <div class="scroll">
-                <table id="tGiocatori">
-                    <thead><tr>
-                        <th>R</th>
-                        <th>Nome</th>
-                        <th>Squadra</th>
-                        <th class="n">Quot (cr)</th>
-                        <th>Possesso</th>
-                        <th class="col-chevron-th"></th>
-                    </tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-            <div id="gioEmpty" class="empty-state" style="display:none;">
-                <span>🔎</span>
-                <p>Nessun calciatore trovato con i filtri correnti</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- ROSE -->
-    <section class="v" id="v-rose">
-        <div class="rose-summary" id="roseSummary"></div>
-        <div id="roseAccordion" class="rose-accordion"></div>
-    </section>
-
-    <!-- MERCATO -->
-    <section class="v" id="v-mercato">
-        <div class="mercato-note" id="mercatoNote"></div>
-        <div class="box">
-            <div class="scroll">
-                <table id="tCambi">
-                    <thead><tr>
-                        <th>Squadra</th>
-                        <th class="n">Cambi rimasti</th>
-                        <th class="n">Crediti residui</th>
-                    </tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-    </section>
-
-</main>
-
-<button id="btnBackToTop" class="back-to-top" aria-label="Torna in cima" title="Torna in cima">↑</button>
-
-<script src="app.js?v=25" defer></script>
+        <noscript>Attiva JavaScript per consultare i dati delle giornate.</noscript>
+        <footer>Fantanucleo · Stagione 2026/27 <a href="#main">Torna in cima ↑</a></footer>
+    </main>
 </body>
 </html>
