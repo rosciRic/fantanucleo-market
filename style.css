@@ -402,9 +402,17 @@ footer {
 #player-list {
     scroll-margin-top:16px
 }
-.day-picker {
+.day-bar {
     position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
     margin-bottom:20px;
+}
+.day-picker {
+    margin-left:auto;
 }
 .day-picker > summary {
     display:inline-flex;
@@ -423,7 +431,7 @@ footer {
 .day-panel {
     position:absolute;
     top:calc(100% + 8px);
-    left:0;
+    right:0;
     z-index:4;
     width:min(480px, 100%);
     max-height:min(50vh, 350px);
@@ -562,7 +570,7 @@ summary:focus-visible {
 
 #edition {
     font-size: .8rem;
-    margin-bottom: 14px;
+    margin: 0;
 }
 #team-list {
     border: 1px solid var(--line);

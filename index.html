@@ -6,8 +6,8 @@
     <meta name="description" content="Fantanucleo: calciatori, rose e mercato della lega 2026/27.">
     <meta name="color-scheme" content="dark">
     <title>Fantanucleo · Market 26/27</title>
-    <link rel="stylesheet" href="style.css?v=33">
-    <script src="app.js?v=33" defer></script>
+    <link rel="stylesheet" href="style.css?v=34">
+    <script src="app.js?v=34" defer></script>
 </head>
 <body>
     <a class="skip" href="#main">Vai ai contenuti</a>
@@ -18,13 +18,15 @@
         </div>
     </header>
     <main id="main" tabindex="-1">
-        <p id="edition" class="muted">Caricamento…</p>
-        <details id="day-picker" class="day-picker">
-            <summary id="day-toggle"><strong>Giornata <span id="current-day">…</span></strong><span class="muted">Cambia</span><span class="chevron" aria-hidden="true">⌄</span></summary>
-            <div class="day-panel">
-                <div id="days" class="chips" role="group" aria-label="Scegli la giornata"></div>
-            </div>
-        </details>
+        <div class="day-bar">
+            <p id="edition" class="muted">Caricamento…</p>
+            <details id="day-picker" class="day-picker">
+                <summary id="day-toggle"><strong>Giornata <span id="current-day">…</span></strong><span class="muted">Cambia</span><span class="chevron" aria-hidden="true">⌄</span></summary>
+                <div class="day-panel">
+                    <div id="days" class="chips" role="group" aria-label="Scegli la giornata"></div>
+                </div>
+            </details>
+        </div>
         <nav class="tabs" aria-label="Sezioni">
             <button data-view="players" aria-current="page">Giocatori</button>
             <button data-view="teams">Rose e classifica</button>
