@@ -25,6 +25,7 @@ function validate(data, day) {
 }
 async function load(day) {
     state.target = day;
+    $('current-day').textContent = day;
     document.querySelectorAll('[data-day]').forEach(button => button.setAttribute('aria-pressed', String(Number(button.dataset.day) === day)));
     const request = ++state.request;
     state.controller?.abort();
@@ -154,7 +155,27 @@ $('ownership-filters').addEventListener('click', event => {
 });
 $('days').addEventListener('click', event => {
     const button = event.target.closest('[data-day]');
-    if (button) load(Number(button.dataset.day));
+    if (!button) return;
+    closeDayPicker(true);
+    load(Number(button.dataset.day));
+});
+function closeDayPicker(restoreFocus = false) {
+    $('day-picker').open = false;
+    if (restoreFocus) $('day-toggle').focus({preventScroll: true});
+}
+document.addEventListener('click', event => {
+    if (!$('day-picker').contains(event.target)) closeDayPicker();
+});
+$('day-picker').addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+        event.preventDefault();
+        closeDayPicker(true);
+    }
+});
+$('day-picker').addEventListener('toggle', () => {
+    if (!$('day-picker').open) return;
+    const selected = $('days').querySelector('[aria-pressed=true]');
+    selected?.scrollIntoView({block: 'nearest', inline: 'nearest'});
 });
 $('retry').addEventListener('click', () => state.days.length ? load(state.target) : init());
 async function init() {

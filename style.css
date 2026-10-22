@@ -403,12 +403,46 @@ footer {
     scroll-margin-top:16px
 }
 .day-picker {
-    display:flex;
-    align-items:center;
-    gap:16px;
-    margin-bottom:24px
+    position:relative;
+    margin-bottom:20px;
 }
-.day-picker>span,.role-filter legend,.ownership-filter legend {
+.day-picker > summary {
+    display:inline-flex;
+    align-items:center;
+    gap:12px;
+    padding:10px 14px;
+    min-height:44px;
+    max-width:100%;
+    border:1px solid var(--line);
+    border-radius:9px;
+    background:var(--panel);
+}
+.day-picker > summary .muted {
+    font-size:.8rem;
+}
+.day-panel {
+    position:absolute;
+    top:calc(100% + 8px);
+    left:0;
+    z-index:4;
+    width:min(480px, 100%);
+    max-height:min(50vh, 350px);
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    padding:14px;
+    border:1px solid var(--line);
+    border-radius:12px;
+    background:var(--panel);
+    box-shadow:0 12px 30px #0006;
+}
+#days {
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(48px, 1fr));
+}
+#days button {
+    padding:10px 6px;
+}
+.role-filter legend,.ownership-filter legend {
     font-size:.8rem;
     color:var(--muted)
 }
@@ -443,12 +477,6 @@ footer {
 }
 
 @media(max-width:650px) {
-    .day-picker {
-        align-items:flex-start
-    }
-    .day-picker>span {
-        padding-top:12px
-    }
     .header {
         padding:16px;
         gap:12px;
