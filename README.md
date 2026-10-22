@@ -7,9 +7,9 @@ Dashboard statica della lega: calciatori, rose, classifica, crediti e cambi.
 ## Come funziona
 
 - Frontend HTML, CSS e JavaScript senza framework, font esterni o dipendenze da scaricare nel browser.
-- Tema Stadio Notturno e tema chiaro, con preferenza salvata sul dispositivo.
+- Tema scuro Stadio Notturno, con pulsanti P/D/C/A nei colori dei ruoli.
 - Pulsanti per giornate e ruoli; listone completo a scorrimento, senza paginazione. Ricerca per nome, club o fantasquadra; filtri possesso e ordinamento.
-- Dettagli dei giocatori e rose apribili anche da tastiera; reparti, punti, quotazioni e costo di acquisto.
+- Elenco squadre compatto con posizione e punti; rose apribili anche da tastiera in una tabella con ruolo, club, quotazione e costo di acquisto.
 - Un JSON per giornata, caricato su richiesta. Cache in memoria delle ultime tre giornate consultate, annullamento delle richieste superate, timeout e pulsante per riprovare.
 - Python prepara e controlla i dati sul computer. GitHub Pages serve solo file statici: non occorrono un server applicativo, un database remoto o token nel frontend.
 

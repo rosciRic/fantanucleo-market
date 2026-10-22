@@ -8,17 +8,6 @@ const num = value => typeof value === 'number' && Number.isFinite(value) ? fmt.f
 const normalize = value => String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('it');
 const state = {data: null, days: [], version: '', cache: new Map(), view: 'players', role: '', request: 0, controller: null, target: null};
 function roleBadge(role) { return `<span class="role role-${esc(role)}" title="${esc(roles[role] || role)}">${esc(role)}</span>`; }
-function preference(key, value) {
-    try { if (value !== undefined) localStorage.setItem(key, value); else return localStorage.getItem(key); } catch { /* Storage may be disabled. */ }
-}
-function setTheme(theme) {
-    document.documentElement.dataset.theme = theme;
-    $('theme').textContent = theme === 'light' ? 'Tema scuro' : 'Tema chiaro';
-    $('theme').setAttribute('aria-label', `Attiva ${$('theme').textContent.toLowerCase()}`);
-    preference('fantanucleo-theme', theme);
-}
-setTheme(preference('fantanucleo-theme') === 'light' ? 'light' : 'dark');
-$('theme').addEventListener('click', () => setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'));
 function feedback(message, error = false) {
     $('feedback').textContent = message;
     $('feedback').classList.toggle('error', error);
@@ -79,7 +68,7 @@ function renderPlayers() {
     const ownership = $('ownership').value;
     const sorted = state.data.giocatori.filter(p => (!query || p.search.includes(query)) && (!role || p.ruolo === role) && (!ownership || (ownership === 'free' ? !p.owners.length : p.owners.length)));
     const mode = $('sort').value;
-    sorted.sort((a,b) => (mode === 'role' ? order[a.ruolo] - order[b.ruolo] || b.quot - a.quot : mode === 'value' ? b.quot - a.quot : mode === 'fm' ? b.fm - a.fm : 0) || a.nome.localeCompare(b.nome, 'it'));
+    sorted.sort((a,b) => (mode === 'role' ? order[a.ruolo] - order[b.ruolo] || b.quot - a.quot : mode === 'value' ? b.quot - a.quot : 0) || a.nome.localeCompare(b.nome, 'it'));
     $('count').textContent = `${sorted.length} ${sorted.length === 1 ? 'risultato' : 'risultati'} su ${state.data.giocatori.length}`;
     $('player-list').innerHTML = sorted.map(playerCard).join('') || '<p class="empty">Nessun risultato. Prova un altro nome o azzera i filtri.</p>';
 }
@@ -89,7 +78,17 @@ function renderTeams() {
         const players = state.data.rose[team.team] || [];
         const balance = balances.get(team.team) || {};
         const value = players.reduce((sum, p) => sum + (p.qta || 0), 0);
-        return `<details class="team"><summary><span class="position">${num(team.pos)}</span><strong>${esc(team.team)}</strong><span class="team-score">${num(team.pts)} <small>pt</small><small>${num(value)} cr</small></span><span class="chevron" aria-hidden="true">⌄</span></summary><div class="detail"><p class="muted">Cambi rimasti: ${num(balance.cambi)} · Crediti: ${num(balance.crediti)} cr</p><div class="departments">${Object.entries(roles).map(([role, label]) => `<section><h3>${roleBadge(role)} ${label}</h3><ul>${players.filter(p => p.ruolo === role).sort((a,b) => b.qta - a.qta).map(p => `<li><span>${esc(p.nome)} ${p.fl ? '<span class="out">Fuori lista</span>' : ''}<small>${esc(p.sq || '—')}</small></span><span class="value">${num(p.qta)} <small>cr</small><small>Acquisto ${num(p.costo)}</small></span></li>`).join('')}</ul></section>`).join('')}</div></div></details>`;
+        const roster = [...players].sort((a,b) => order[a.ruolo] - order[b.ruolo] || b.qta - a.qta || a.nome.localeCompare(b.nome, 'it'));
+        return `<details class="team">
+            <summary><span class="position">${num(team.pos)}</span><strong>${esc(team.team)}</strong><span class="team-score">${num(team.pts)} <small>pt</small></span><span class="chevron" aria-hidden="true">⌄</span></summary>
+            <div class="detail">
+                <p class="muted team-resources">Valore rosa: ${num(value)} cr · Crediti: ${num(balance.crediti)} cr · Cambi: ${num(balance.cambi)}</p>
+                <table class="roster-table" aria-label="Rosa ${esc(team.team)}">
+                    <thead><tr><th scope="col">Calciatore</th><th scope="col">Quota <small>cr</small></th><th scope="col">Costo <small>cr</small></th></tr></thead>
+                    <tbody>${roster.map(p => `<tr><th scope="row"><span class="identity">${roleBadge(p.ruolo)}<span>${esc(p.nome)} ${p.fl ? '<span class="out">Fuori lista</span>' : ''}<small>${esc(p.sq || '—')}</small></span></span></th><td>${num(p.qta)}</td><td>${num(p.costo)}</td></tr>`).join('')}</tbody>
+                </table>
+            </div>
+        </details>`;
     }).join('');
 }
 function renderMarket() {

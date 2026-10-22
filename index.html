@@ -4,25 +4,21 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="description" content="Fantanucleo: calciatori, rose e mercato della lega 2026/27.">
-    <meta name="color-scheme" content="dark light">
+    <meta name="color-scheme" content="dark">
     <title>Fantanucleo · Market 26/27</title>
-    <link rel="stylesheet" href="style.css?v=27">
-    <script src="app.js?v=27" defer></script>
+    <link rel="stylesheet" href="style.css?v=29">
+    <script src="app.js?v=29" defer></script>
 </head>
 <body>
     <a class="skip" href="#main">Vai ai contenuti</a>
     <header class="header">
         <div class="brand">
             <span class="brand-mark" aria-hidden="true">F</span>
-            <div><strong>Fantanucleo</strong><small>MARKET / 26–27</small></div>
+            <div><h1>Fantanucleo</h1><small>MARKET / 26–27</small></div>
         </div>
-        <button id="theme" aria-label="Attiva tema chiaro">Tema chiaro</button>
     </header>
     <main id="main" tabindex="-1">
-        <div class="intro">
-            <div><p class="eyebrow">Il mercato della tua lega</p><h1>Ogni scelta, tutti i dati.</h1></div>
-            <p id="edition" class="muted">Caricamento…</p>
-        </div>
+        <p id="edition" class="muted">Caricamento…</p>
         <div class="day-picker">
             <span id="days-label">Giornata</span>
             <div id="days" class="chips" role="group" aria-labelledby="days-label"></div>
@@ -59,7 +55,7 @@
                         <label>Ordina per
                             <select id="sort">
                                 <option value="role">Ruolo e quotazione</option><option value="value">Quotazione</option>
-                                <option value="name">Nome</option><option value="fm">Fantamedia</option>
+                                <option value="name">Nome</option>
                             </select>
                         </label>
                         <button type="reset" class="subtle">Azzera filtri</button>
@@ -70,7 +66,7 @@
                 <div id="player-list"></div>
             </section>
             <section id="teams" hidden aria-label="Rose e classifica">
-                <div class="section-heading"><h2>Rose e classifica</h2><span class="muted">Apri una squadra per vedere i reparti</span></div>
+                <div class="section-heading"><h2>Rose e classifica</h2><span class="muted">Apri una squadra per vedere la rosa</span></div>
                 <div id="team-list"></div>
             </section>
             <section id="market" hidden aria-label="Crediti e cambi">
