@@ -12,7 +12,8 @@ Dashboard statica della lega: calciatori, rose, classifica, crediti e cambi.
 - Elenco squadre compatto con posizione e punti; rose apribili anche da tastiera in una tabella con ruolo, club, quotazione e costo di acquisto.
 - Crediti e cambi ordinati per cambi rimasti decrescenti, poi crediti residui decrescenti e nome a parità di valori.
 - Il pulsante “Giornata N · Cambia” apre una griglia di giornate e si richiude dopo la scelta, con Esc o cliccando fuori. Con molte giornate il pannello scorre al suo interno; la giornata selezionata è evidenziata.
-- Un JSON per giornata, caricato su richiesta. Cache in memoria delle ultime tre giornate consultate, annullamento delle richieste superate, timeout e pulsante per riprovare.
+- Un JSON per giornata, caricato su richiesta. Versione distinta per giornata, cache HTTP e cache in memoria delle ultime tre giornate consultate, annullamento delle richieste superate, timeout e pulsante per riprovare.
+- Giocatori ordinati una sola volta al caricamento; dettagli generati alla prima apertura della card. Cambiare scheda conserva il contenuto già preparato per quella giornata e gli stessi filtri.
 - Python prepara e controlla i dati sul computer. GitHub Pages serve solo file statici: non occorrono un server applicativo, un database remoto o token nel frontend.
 
 ## Preparazione iniziale
@@ -61,10 +62,12 @@ git pull --ff-only
 
 Lo script:
 
-1. Prepara CSV e JSON in una cartella temporanea.
+1. Legge gli Excel e prepara direttamente il JSON in una cartella temporanea, senza scrivere e rileggere CSV intermedi.
 2. Verifica le 18 squadre, le rose complete, i possessori, i contatori e i valori numerici.
 3. Salva la giornata e aggiorna il manifest solo dopo la validazione. Copia gli Excel nella cartella della giornata; gli originali nei Download restano disponibili.
-4. Con `--publish`, crea un commit limitato ai CSV/JSON della giornata e a `manifest.json`, quindi esegue il push su `main`. Gli Excel restano locali, ignorati da Git.
+4. Con `--publish`, crea un commit limitato ai dati della giornata e a `manifest.json`, quindi esegue il push su `main`. Gli Excel restano locali, ignorati da Git.
+
+I CSV sono facoltativi: aggiungi `--csv` al comando di importazione per esportarli. I CSV storici restano disponibili, ma non vengono aggiornati senza questa opzione. Gli aggiornamenti delle sole quotazioni leggono classifica, rose e statistiche dal JSON esistente.
 
 Il push avvia GitHub Actions: controlla che **Publish GitHub Pages** termini con successo. Il messaggio “Push completato” non significa che il deploy sia già terminato.
 
@@ -119,28 +122,30 @@ python3 site_data.py --build
 
 La build valida dati e versione del manifest e copia in `_site/` solo HTML, CSS, JavaScript, manifest e JSON pubblici. I workflow eseguono gli stessi controlli prima del deploy. Non modificare `_site/` direttamente.
 
-Per rigenerare tutti i JSON dai CSV archiviati e aggiornare il manifest:
+Per validare i JSON esistenti e aggiornare le versioni del manifest:
 
 ```bash
 python3 export_json.py
 ```
 
-Il manifest usa una versione derivata dal contenuto: una rigenerazione identica non produce aggiornamenti artificiali. I JSON sono generati; correggi gli Excel/CSV sorgente e rigenerali. Quando modifichi CSS o JavaScript, aggiorna anche `?v=` in `index.html` per invalidare la cache degli asset.
+Solo per ricostruire esplicitamente i JSON dai CSV storici, usa `python3 export_json.py --from-csv`: sovrascrive i JSON, quindi verifica che quei CSV siano aggiornati.
+
+Il manifest usa versioni per giornata derivate dal contenuto: una rigenerazione identica non produce aggiornamenti artificiali. I JSON sono generati; correggi gli Excel sorgente e ripeti l’importazione. Quando modifichi CSS o JavaScript, aggiorna anche `?v=` in `index.html` per invalidare la cache degli asset.
 
 ## File principali
 
 | File | Funzione |
 | --- | --- |
 | `index.html` | Struttura accessibile e controlli |
-| `style.css` | Palette, temi e layout responsive |
+| `style.css` | Palette e layout responsive |
 | `app.js` | Caricamento, ricerca, filtri e viste |
 | `organizza_fanta.py` | Importazione Excel e pubblicazione esplicita |
-| `export_json.py` | Trasformazione CSV → JSON |
+| `export_json.py` | Composizione dati in memoria e conversione CSV storici |
 | `site_data.py` | Validazione, manifest e build statica |
 | `aggiorna_fanta.sh` | Comando di aggiornamento |
 | `requirements.txt` | Dipendenza Python versionata |
 | `tests/` | Controlli della pipeline |
-| `giornata_N/` | CSV, JSON e copie locali degli Excel |
+| `giornata_N/` | JSON, CSV facoltativi e copie locali degli Excel |
 | `.github/workflows/` | Controlli PR e pubblicazione Pages |
 
 ## Licenza

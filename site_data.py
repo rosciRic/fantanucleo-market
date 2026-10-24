@@ -72,18 +72,22 @@ def days(root=ROOT):
 def manifest(root=ROOT):
     numbers = days(root)
     digest = hashlib.sha256()
+    versions = {}
     for day in numbers:
         path = root / f'giornata_{day}/data_{day}.json'
-        validate(json.loads(path.read_text()), day)
-        digest.update(path.read_bytes())
-    return {'giornate': numbers, 'version': digest.hexdigest()[:20]}
+        content = path.read_bytes()
+        validate(json.loads(content), day)
+        digest.update(content)
+        versions[str(day)] = hashlib.sha256(content).hexdigest()[:20]
+    return {'giornate': numbers, 'version': digest.hexdigest()[:20], 'versions': versions}
 
 
 def check(root=ROOT):
     current = json.loads((root / 'manifest.json').read_text())
     if not current['giornate'] or current['giornate'] != days(root):
         raise ValueError('Manifest e giornate disponibili non corrispondono')
-    if current.get('version') != manifest(root)['version']:
+    expected = manifest(root)
+    if current.get('version') != expected['version'] or current.get('versions') != expected['versions']:
         raise ValueError('Versione manifest obsoleta: esegui python3 export_json.py')
     return current
 

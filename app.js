@@ -6,15 +6,15 @@ const fmt = new Intl.NumberFormat('it-IT', {maximumFractionDigits: 2});
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const num = value => typeof value === 'number' && Number.isFinite(value) ? fmt.format(value) : esc(value || '—');
 const normalize = value => String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('it');
-const state = {data: null, days: [], version: '', cache: new Map(), view: 'players', role: '', ownership: '', request: 0, controller: null, target: null};
+const state = {data: null, days: [], version: '', versions: {}, rendered: new Map(), cache: new Map(), view: 'players', role: '', ownership: '', request: 0, controller: null, target: null};
 function roleBadge(role) { return `<span class="role role-${esc(role)}" title="${esc(roles[role] || role)}">${esc(role)}</span>`; }
 function feedback(message, error = false) {
     $('feedback').textContent = message;
     $('feedback').classList.toggle('error', error);
     $('retry').hidden = !error;
 }
-async function json(url, signal) {
-    const response = await fetch(url, {signal, cache: 'no-cache'});
+async function json(url, signal, cache = 'no-cache') {
+    const response = await fetch(url, {signal, cache});
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return response.json();
 }
@@ -38,9 +38,14 @@ async function load(day) {
     try {
         let data = state.cache.get(day);
         if (!data) {
-            data = await json(`giornata_${day}/data_${day}.json?v=${encodeURIComponent(state.version)}`, controller.signal);
+            const version = state.versions[day] || state.version;
+            data = await json(`giornata_${day}/data_${day}.json?v=${encodeURIComponent(version)}`, controller.signal, 'force-cache');
             validate(data, day);
-            data.giocatori.forEach(p => { p.search = normalize([p.nome, p.sq, ...p.owners].join(' ')); });
+            data.giocatori.sort((a,b) => order[a.ruolo] - order[b.ruolo] || b.quot - a.quot || a.nome.localeCompare(b.nome, 'it'));
+            data.giocatori.forEach((p, index) => {
+                p.index = index;
+                p.search = normalize([p.nome, p.sq, ...p.owners].join(' '));
+            });
             state.cache.set(day, data);
             if (state.cache.size > 3) state.cache.delete(state.cache.keys().next().value);
         }
@@ -61,29 +66,37 @@ async function load(day) {
 }
 function playerCard(p) {
     const owners = p.owners;
-    const metrics = [['Quotazione', `${num(p.quot)} cr`], ['FVM', num(p.fvm)], ['Fantamedia', num(p.fm)], ['Media voto', num(p.mv)], ['Partite', num(p.pg)]];
     const ownership = owners.length
         ? `<span class="owner-name">${esc(owners[0])}</span>${owners.length > 1 ? ` <span class="owner-more" title="Apri per vedere le altre ${owners.length - 1} fantasquadre">+${owners.length - 1}</span>` : ''}`
         : '<span class="free">Svincolato</span>';
-    const ownerDetails = owners.length
-        ? `<div class="owner-details"><p class="owner-label">Fantasquadre che lo possiedono</p><ul class="owner-list">${owners.map(team => `<li class="owner-team">${esc(team)}</li>`).join('')}</ul></div>`
-        : '';
-    return `<details class="player">
+    return `<details class="player" data-player="${p.index}">
         <summary>
             <span class="identity">${roleBadge(p.ruolo)}<span><strong>${esc(p.nome)}</strong><small>${esc(p.sq || 'Squadra non disponibile')}</small></span></span>
             <span class="value">${num(p.quot)} <small>cr</small></span>
             <span class="owner">${ownership}</span>
             <span class="chevron" aria-hidden="true">⌄</span>
         </summary>
-        <div class="detail"><dl>${metrics.map(([label,value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join('')}</dl>${ownerDetails}</div>
     </details>`;
 }
+function playerDetails(p) {
+    const owners = p.owners;
+    const metrics = [['Quotazione', `${num(p.quot)} cr`], ['FVM', num(p.fvm)], ['Fantamedia', num(p.fm)], ['Media voto', num(p.mv)], ['Partite', num(p.pg)]];
+    const ownerDetails = owners.length
+        ? `<div class="owner-details"><p class="owner-label">Fantasquadre che lo possiedono</p><ul class="owner-list">${owners.map(team => `<li class="owner-team">${esc(team)}</li>`).join('')}</ul></div>`
+        : '';
+    return `<div class="detail"><dl>${metrics.map(([label,value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join('')}</dl>${ownerDetails}</div>`;
+}
+$('player-list').addEventListener('toggle', event => {
+    const card = event.target;
+    if (!card.matches('details[data-player]') || !card.open || card.querySelector('.detail')) return;
+    const player = state.data?.giocatori[Number(card.dataset.player)];
+    if (player) card.insertAdjacentHTML('beforeend', playerDetails(player));
+}, true);
 function renderPlayers() {
     const query = normalize($('query').value.trim());
     const role = state.role;
     const ownership = state.ownership;
     const sorted = state.data.giocatori.filter(p => (!query || p.search.includes(query)) && (!role || p.ruolo === role) && (!ownership || (ownership === 'free' ? !p.owners.length : p.owners.length)));
-    sorted.sort((a,b) => order[a.ruolo] - order[b.ruolo] || b.quot - a.quot || a.nome.localeCompare(b.nome, 'it'));
     $('count').textContent = `${sorted.length} ${sorted.length === 1 ? 'risultato' : 'risultati'} su ${state.data.giocatori.length}`;
     $('player-list').innerHTML = sorted.map(playerCard).join('') || '<p class="empty">Nessun risultato. Prova un altro nome o azzera i filtri.</p>';
 }
@@ -111,7 +124,11 @@ function renderMarket() {
 }
 function render() {
     if (!state.data) return;
+    const key = state.view === 'players' ? JSON.stringify([$('query').value.trim(), state.role, state.ownership]) : '';
+    const previous = state.rendered.get(state.view);
+    if (previous?.data === state.data && previous.key === key) return;
     ({players: renderPlayers, teams: renderTeams, market: renderMarket})[state.view]();
+    state.rendered.set(state.view, {data: state.data, key});
 }
 document.querySelector('.tabs').addEventListener('click', event => {
     const button = event.target.closest('[data-view]');
@@ -125,13 +142,13 @@ let timer;
 $('filters').addEventListener('submit', e => e.preventDefault());
 $('filters').addEventListener('input', () => {
     clearTimeout(timer);
-    timer = setTimeout(() => { if (state.data) renderPlayers(); }, 100);
+    timer = setTimeout(render, 100);
 });
 $('filters').addEventListener('reset', () => {
     clearTimeout(timer);
     selectRole('');
     selectOwnership('');
-    setTimeout(() => { if (state.data) renderPlayers(); }, 0);
+    setTimeout(render, 0);
 });
 function selectRole(role) {
     state.role = role;
@@ -141,7 +158,7 @@ $('role-filters').addEventListener('click', event => {
     const button = event.target.closest('[data-role]');
     if (!button) return;
     selectRole(button.dataset.role);
-    if (state.data) renderPlayers();
+    render();
 });
 function selectOwnership(ownership) {
     state.ownership = ownership;
@@ -151,7 +168,7 @@ $('ownership-filters').addEventListener('click', event => {
     const button = event.target.closest('[data-ownership]');
     if (!button) return;
     selectOwnership(button.dataset.ownership);
-    if (state.data) renderPlayers();
+    render();
 });
 $('days').addEventListener('click', event => {
     const button = event.target.closest('[data-day]');
@@ -185,6 +202,7 @@ async function init() {
         if (!Array.isArray(manifest.giornate) || !manifest.giornate.length || manifest.giornate.some(n => !Number.isInteger(n) || n < 1)) throw new Error('Manifest non valido');
         state.days = [...new Set(manifest.giornate)].sort((a,b) => a-b);
         state.version = manifest.version || '';
+        state.versions = manifest.versions || {};
         $('days').innerHTML = state.days.map(n => `<button type="button" data-day="${n}" aria-label="Giornata ${n}" aria-pressed="false">G${n}</button>`).join('');
         await load(state.days.at(-1));
     } catch (error) {

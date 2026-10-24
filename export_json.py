@@ -13,134 +13,120 @@ from pathlib import Path
 def is_asterisk(s):
     return bool(s and '*' in str(s))
 
-def generate_giornata_json(giornata_dir: Path, num: int) -> dict:
+def build_day(tables: dict, num: int) -> dict:
+    """Build the public data from parsed rows, without intermediate files."""
     # 1. Classifiche
     standings = []
-    p_classifica = giornata_dir / f"classifiche_campionato_{num}.csv"
-    if p_classifica.exists():
-        with open(p_classifica, encoding="utf-8") as f:
-            for r in csv.DictReader(f):
-                if r.get("Tipo") == "Generale":
-                    try:
-                        standings.append({
-                            "pos": int(r.get("Posizione", 0)),
-                            "team": r.get("Fantasquadra", "").strip(),
-                            "pts": float(r.get("Punti", 0))
-                        })
-                    except ValueError:
-                        pass
-        standings.sort(key=lambda x: x["pos"])
+    for r in tables.get("classifiche_campionato", []):
+        if r.get("Tipo") == "Generale":
+            try:
+                standings.append({
+                    "pos": int(r.get("Posizione", 0)),
+                    "team": r.get("Fantasquadra", "").strip(),
+                    "pts": float(r.get("Punti", 0))
+                })
+            except ValueError:
+                pass
+    standings.sort(key=lambda x: x["pos"])
 
     # 2. Cambi & Crediti
     cambi = []
-    p_cambi = giornata_dir / f"cambi_{num}.csv"
-    if p_cambi.exists():
-        with open(p_cambi, encoding="utf-8") as f:
-            for r in csv.DictReader(f):
-                c_rim = r.get("CambiRimasti", "").strip()
-                cr_rim = r.get("CreditiRimasti", "").strip()
-                cambi_val = int(c_rim) if c_rim.isdigit() else c_rim
-                cred_val = int(cr_rim) if cr_rim.isdigit() else cr_rim
-                cambi.append({
-                    "team": r.get("Fantasquadra", "").strip(),
-                    "cambi": cambi_val,
-                    "crediti": cred_val,
-                    "extra": r.get("CambiExtra", "").strip()
-                })
+    for r in tables.get("cambi", []):
+        c_rim = r.get("CambiRimasti", "").strip()
+        cr_rim = r.get("CreditiRimasti", "").strip()
+        cambi_val = int(c_rim) if c_rim.isdigit() else c_rim
+        cred_val = int(cr_rim) if cr_rim.isdigit() else cr_rim
+        cambi.append({
+            "team": r.get("Fantasquadra", "").strip(),
+            "cambi": cambi_val,
+            "crediti": cred_val,
+            "extra": r.get("CambiExtra", "").strip()
+        })
 
     # 3. Quotazioni Listone Ufficiale
     quot_map = {}
     quot_list = []
-    p_quot = giornata_dir / f"quotazioni_{num}.csv"
-    if p_quot.exists():
-        with open(p_quot, encoding="utf-8") as f:
-            for r in csv.DictReader(f):
-                nome = r.get("Nome", "").strip()
-                clean = nome.replace("*", "").strip()
-                if not clean:
-                    continue
-                try:
-                    qta = int(r.get("QtA", 0))
-                except ValueError:
-                    qta = 0
-                try:
-                    qti = int(r.get("QtI", 0))
-                except ValueError:
-                    qti = 0
-                try:
-                    diff = int(r.get("Diff", 0))
-                except ValueError:
-                    diff = 0
+    for r in tables.get("quotazioni", []):
+        nome = r.get("Nome", "").strip()
+        clean = nome.replace("*", "").strip()
+        if not clean:
+            continue
+        try:
+            qta = int(r.get("QtA", 0))
+        except ValueError:
+            qta = 0
+        try:
+            qti = int(r.get("QtI", 0))
+        except ValueError:
+            qti = 0
+        try:
+            diff = int(r.get("Diff", 0))
+        except ValueError:
+            diff = 0
 
-                info = {
-                    "nome": clean,
-                    "sq": r.get("Squadra", "").strip(),
-                    "ruolo": r.get("Ruolo", "").strip(),
-                    "qta": qta,
-                    "qti": qti,
-                    "diff": diff,
-                    "is_fl": is_asterisk(nome)
-                }
-                quot_list.append(info)
-                quot_map[clean.lower()] = info
+        info = {
+            "nome": clean,
+            "sq": r.get("Squadra", "").strip(),
+            "ruolo": r.get("Ruolo", "").strip(),
+            "qta": qta,
+            "qti": qti,
+            "diff": diff,
+            "is_fl": is_asterisk(nome)
+        }
+        quot_list.append(info)
+        quot_map[clean.lower()] = info
 
     # 4. Rose
     rose_by_team = {}
-    p_rose = giornata_dir / f"rose_{num}.csv"
-    if p_rose.exists():
-        with open(p_rose, encoding="utf-8") as f:
-            for r in csv.DictReader(f):
-                team = r.get("Fantasquadra", "").strip()
-                raw_name = r.get("Calciatore", "").strip()
-                clean_name = raw_name.replace("*", "").strip()
-                is_fl = is_asterisk(raw_name)
-                try:
-                    costo = int(r.get("Costo", 0))
-                except ValueError:
-                    costo = 0
+    for r in tables.get("rose", []):
+        team = r.get("Fantasquadra", "").strip()
+        raw_name = r.get("Calciatore", "").strip()
+        clean_name = raw_name.replace("*", "").strip()
+        is_fl = is_asterisk(raw_name)
+        try:
+            costo = int(r.get("Costo", 0))
+        except ValueError:
+            costo = 0
 
-                qinfo = quot_map.get(clean_name.lower(), {})
-                sq = qinfo.get("sq", "")
-                qta = qinfo.get("qta", costo)
-                ruolo = r.get("Ruolo", "").strip() or qinfo.get("ruolo", "")
+        qinfo = quot_map.get(clean_name.lower(), {})
+        sq = qinfo.get("sq", "")
+        qta = qinfo.get("qta", costo)
+        ruolo = r.get("Ruolo", "").strip() or qinfo.get("ruolo", "")
 
-                if team not in rose_by_team:
-                    rose_by_team[team] = []
-                rose_by_team[team].append({
-                    "ruolo": ruolo,
-                    "nome": clean_name,
-                    "costo": costo,
-                    "sq": sq,
-                    "qta": qta,
-                    "fl": is_fl or qinfo.get("is_fl", False)
-                })
+        if team not in rose_by_team:
+            rose_by_team[team] = []
+        rose_by_team[team].append({
+            "ruolo": ruolo,
+            "nome": clean_name,
+            "costo": costo,
+            "sq": sq,
+            "qta": qta,
+            "fl": is_fl or qinfo.get("is_fl", False)
+        })
 
     # 5. Svincolati
     sv_list = []
-    p_sv = giornata_dir / f"svincolati_{num}.csv"
-    if p_sv.exists():
-        with open(p_sv, encoding="utf-8") as f:
-            for r in csv.DictReader(f):
-                raw_name = r.get("Nome", "").strip()
-                clean_name = raw_name.replace("*", "").strip()
-                is_fl = is_asterisk(raw_name)
-                try:
-                    quot = int(r.get("Quotazione", 0))
-                except ValueError:
-                    quot = 0
-                pg_str = r.get("PG", "").strip()
-                fvm_str = r.get("FVM", "").strip()
-                sv_list.append({
-                    "nome": clean_name,
-                    "sq": r.get("Squadra", "").strip(),
-                    "ruolo": r.get("Ruolo", "").strip(),
-                    "pg": int(pg_str) if pg_str.isdigit() else 0,
-                    "mv": float(r.get("MV", 0)) if r.get("MV") else 0.0,
-                    "fm": float(r.get("FM", 0)) if r.get("FM") else 0.0,
-                    "fvm": int(fvm_str) if fvm_str.isdigit() else 0,
-                    "quot": quot,
-                    "fl": is_fl
-                })
+    for r in tables.get("svincolati", []):
+        raw_name = r.get("Nome", "").strip()
+        clean_name = raw_name.replace("*", "").strip()
+        is_fl = is_asterisk(raw_name)
+        try:
+            quot = int(r.get("Quotazione", 0))
+        except ValueError:
+            quot = 0
+        pg_str = r.get("PG", "").strip()
+        fvm_str = r.get("FVM", "").strip()
+        sv_list.append({
+            "nome": clean_name,
+            "sq": r.get("Squadra", "").strip(),
+            "ruolo": r.get("Ruolo", "").strip(),
+            "pg": int(pg_str) if pg_str.isdigit() else 0,
+            "mv": float(r.get("MV", 0)) if r.get("MV") else 0.0,
+            "fm": float(r.get("FM", 0)) if r.get("FM") else 0.0,
+            "fvm": int(fvm_str) if fvm_str.isdigit() else 0,
+            "quot": quot,
+            "fl": is_fl
+        })
 
     # 6. Database Unificato Giocatori & Possesso
     db_map = {}
@@ -236,12 +222,54 @@ def generate_giornata_json(giornata_dir: Path, num: int) -> dict:
         "giocatori": giocatori
     }
 
+def read_tables(giornata_dir: Path, num: int) -> dict:
+    tables = {}
+    for name in ('classifiche_campionato', 'cambi', 'quotazioni', 'rose', 'svincolati'):
+        path = giornata_dir / f'{name}_{num}.csv'
+        if path.exists():
+            with path.open(encoding='utf-8', newline='') as source:
+                tables[name] = list(csv.DictReader(source))
+    return tables
+
+
+def generate_giornata_json(giornata_dir: Path, num: int) -> dict:
+    """Compatibility entry point for explicit CSV archive conversion."""
+    return build_day(read_tables(giornata_dir, num), num)
+
+
+def tables_from_data(data: dict) -> dict:
+    """Recover results from the canonical JSON for a quotes-only update."""
+    return {
+        'classifiche_campionato': [
+            dict(Tipo='Generale', Posizione=str(t['pos']), Fantasquadra=t['team'], Punti=str(t['pts']))
+            for t in data['standings']
+        ],
+        'cambi': [
+            dict(Fantasquadra=t['team'], CambiRimasti=str(t['cambi']),
+                 CreditiRimasti=str(t['crediti']), CambiExtra=t['extra'])
+            for t in data['cambi']
+        ],
+        'rose': [
+            dict(Fantasquadra=team, Ruolo=p['ruolo'],
+                 Calciatore=p['nome'] + ('*' if p['fl'] else ''), Costo=str(p['costo']))
+            for team, roster in data['rose'].items() for p in roster
+        ],
+        'svincolati': [
+            dict(Nome=p['nome'], Squadra=p['sq'], Ruolo=p['ruolo'], PG=str(p['pg']),
+                 MV=str(p['mv']), FM=str(p['fm']), FVM=str(p['fvm']), Quotazione=str(p['quot']))
+            for p in data['giocatori'] if p.get('isSvincolato')
+        ],
+    }
+
+
 def export_all(base_dir: Path):
     from site_data import validate, atomic_json
     folders = [p for p in base_dir.glob("giornata_*") if p.is_dir() and re.fullmatch(r"giornata_[1-9]\d*", p.name)]
     prepared = []
     for g_dir in sorted(folders, key=lambda p: int(p.name.split("_")[-1])):
         num = int(g_dir.name.split("_")[-1])
+        if not (g_dir / f"quotazioni_{num}.csv").is_file():
+            continue
         data = generate_giornata_json(g_dir, num)
         out_file = g_dir / f"data_{num}.json"
         validate(data, num)
@@ -254,6 +282,11 @@ def export_all(base_dir: Path):
 
 if __name__ == "__main__":
     repo_dir = Path(__file__).resolve().parent
-    export_all(repo_dir)
+    import argparse
+    parser = argparse.ArgumentParser(description="Validate JSON and refresh the manifest; optionally rebuild from CSV.")
+    parser.add_argument("--from-csv", action="store_true", help="Rebuild JSON from legacy CSV sources (overwrites JSON)")
+    args = parser.parse_args()
+    if args.from_csv:
+        export_all(repo_dir)
     from site_data import atomic_json, manifest
     atomic_json(repo_dir / "manifest.json", manifest(repo_dir))

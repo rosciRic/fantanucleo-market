@@ -1,13 +1,7 @@
 #!/usr/bin/env python3
 """
-organizza_fanta.py — Converte i file Risultati Nª 2026_2027.xlsx e Quotazioni nei CSV per la dashboard.
-
-Genera i CSV essenziali per ogni giornata:
-  1. classifiche_campionato_N.csv  → Classifica Generale + Punti
-  2. rose_N.csv                    → Rose di tutte le 18 squadre
-  3. svincolati_N.csv              → Calciatori liberi sul mercato
-  4. cambi_N.csv                   → Cambi e crediti residui per ogni squadra
-  5. quotazioni_N.csv              → Quotazioni attuali e variazioni dal listone ufficiale
+organizza_fanta.py — Importa Risultati e Quotazioni direttamente in JSON validato.
+Usa --csv per esportare anche le tabelle CSV facoltative.
 
 Uso:
   python3 organizza_fanta.py                  # Importa una giornata dai Download, senza pubblicare
@@ -16,6 +10,7 @@ Uso:
 import sys
 import re
 import csv
+import json
 import shutil
 import tempfile
 import subprocess
@@ -287,8 +282,8 @@ def publish(day):
     print('Push completato. Controlla il deploy nella scheda Actions di GitHub.')
 
 
-def import_day(results, quotes, day=None, dry_run=False):
-    from export_json import generate_giornata_json
+def import_day(results, quotes, day=None, dry_run=False, export_csv=False):
+    from export_json import build_day, tables_from_data
     from site_data import validate, atomic_json, manifest, days
     wb = None
     try:
@@ -311,13 +306,15 @@ def import_day(results, quotes, day=None, dry_run=False):
             raise ValueError('Serve un listone quotazioni esplicito o già archiviato per questa giornata.')
         with tempfile.TemporaryDirectory(prefix='.import_', dir=FANTA_DIR) as temp:
             staging = Path(temp)
-            if output.exists():
-                for source in output.glob('*.csv'):
-                    shutil.copy2(source, staging / source.name)
+            tables = {}
+            if not wb:
+                previous = json.loads((output / f'data_{day}.json').read_text(encoding='utf-8'))
+                validate(previous, day)
+                tables = tables_from_data(previous)
             values = parse_listone_file(quotes, day)
             if not values:
                 raise ValueError('Listone vuoto o non riconosciuto.')
-            write_csv(staging / f'quotazioni_{day}.csv', ['Nome','Squadra','Ruolo','QtA','QtI','Diff'], values)
+            tables['quotazioni'] = [dict(zip(['Nome','Squadra','Ruolo','QtA','QtI','Diff'], map(str, row))) for row in values]
             if wb:
                 def sheet(part):
                     names = [s for s in wb.sheetnames if part in s.lower()]
@@ -325,21 +322,25 @@ def import_day(results, quotes, day=None, dry_run=False):
                         raise ValueError(f'Foglio {part} mancante o ambiguo.')
                     return wb[names[0]]
                 results_sheet = sheet('risultat')
-                tables = [
+                parsed = [
                     ('classifiche_campionato', ['Tipo','Posizione','Fantasquadra','Punti'], parse_classifica(results_sheet)),
                     ('rose', ['Fantasquadra','Ruolo','Calciatore','Costo'], parse_rose(sheet('rose'))),
                     ('cambi', ['Fantasquadra','CambiRimasti','CreditiRimasti','CambiExtra'], parse_cambi(results_sheet)),
                     ('svincolati', ['Nome','Squadra','Ruolo','PG','MV','FM','FVM','Quotazione'], parse_svincolati(sheet('svincolat'), {q[0].replace('*','').strip().lower(): q[3] for q in values})),
                 ]
-                for name, header, rows in tables:
-                    write_csv(staging / f'{name}_{day}.csv', header, rows)
-            data = generate_giornata_json(staging, day)
+                for name, header, rows in parsed:
+                    tables[name] = [dict(zip(header, map(str, row))) for row in rows]
+            data = build_day(tables, day)
             validate(data, day)
             atomic_json(staging / f'data_{day}.json', data)
             print(f'G{day}: {len(data["giocatori"])} giocatori, {len(data["rose"])} rose. Dati validi.')
             if dry_run:
                 print('Simulazione completata: nessun dato o file sorgente modificato.')
                 return day
+            if export_csv:
+                for name, rows in tables.items():
+                    if rows:
+                        write_csv(staging / f'{name}_{day}.csv', list(rows[0]), [list(row.values()) for row in rows])
             # Keep the original downloads. Copy only the exact files used in this import.
             shutil.copy2(quotes, staging / f'Quotazioni_{day}ª_2026_2027.xlsx')
             if results:
@@ -371,6 +372,7 @@ def main():
     parser.add_argument('results', nargs='?', type=Path, help='Excel risultati (facoltativo per aggiornare solo le quotazioni)')
     parser.add_argument('--quotes', type=Path, help='Excel quotazioni da associare')
     parser.add_argument('--day', type=int, choices=range(1, 100), metavar='N')
+    parser.add_argument('--csv', action='store_true', help='Esporta anche i CSV; il sito usa soltanto i JSON')
     parser.add_argument('--downloads', type=Path, default=DOWNLOADS_DIR)
     action = parser.add_mutually_exclusive_group()
     action.add_argument('--dry-run', action='store_true', help='Valida senza modificare i dati')
@@ -394,7 +396,7 @@ def main():
         for path in (results, quotes):
             if path and not path.is_file():
                 raise ValueError(f'File non trovato: {path}')
-        day = import_day(results, quotes, args.day, args.dry_run)
+        day = import_day(results, quotes, args.day, args.dry_run, args.csv)
         if args.publish:
             publish(day)
         elif not args.dry_run:

@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 import openpyxl
 import organizza_fanta as importer
-from export_json import generate_giornata_json
+from export_json import generate_giornata_json, build_day, read_tables, tables_from_data
 from site_data import ROOT, check, validate, manifest
 
 
@@ -37,6 +37,57 @@ class PipelineTests(unittest.TestCase):
 
     def test_manifest_is_deterministic(self):
         self.assertEqual(manifest(), manifest())
+
+    def test_json_results_roundtrip_preserves_legacy_archive(self):
+        for source in ROOT.glob('giornata_*/quotazioni_*.csv'):
+            day = int(source.parent.name.split('_')[1])
+            with self.subTest(day=day):
+                folder = source.parent
+                expected = generate_giornata_json(folder, day)
+                tables = read_tables(folder, day)
+                recovered = tables_from_data(expected)
+                recovered['quotazioni'] = tables['quotazioni']
+                self.assertEqual(build_day(recovered, day), expected)
+
+    def test_changing_one_day_keeps_other_cache_versions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for day in (1, 2):
+                folder = root / f'giornata_{day}'
+                folder.mkdir()
+                self.data['giornata'] = day
+                (folder / f'data_{day}.json').write_text(json.dumps(self.data))
+            before = manifest(root)
+            self.data['standings'][0]['pts'] += 1
+            (root / 'giornata_2/data_2.json').write_text(json.dumps(self.data))
+            after = manifest(root)
+            self.assertEqual(before['versions']['1'], after['versions']['1'])
+            self.assertNotEqual(before['versions']['2'], after['versions']['2'])
+            self.assertNotEqual(before['version'], after['version'])
+
+    def test_quotes_update_works_without_csv_and_exports_only_on_request(self):
+        self.data = generate_giornata_json(ROOT / 'giornata_7', 7)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            folder = root / 'giornata_7'
+            folder.mkdir()
+            (folder / 'data_7.json').write_text(json.dumps(self.data))
+            quotes = root / 'Quotazioni.xlsx'
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.append(['header'])
+            ws.append(['header'])
+            for index, row in enumerate(read_tables(ROOT / 'giornata_7', 7)['quotazioni'], 1):
+                ws.append([index, row['Ruolo'], '', row['Nome'], row['Squadra'], int(row['QtA']), int(row['QtI']), int(row['Diff'])])
+            wb.save(quotes)
+            wb.close()
+            with patch.object(importer, 'FANTA_DIR', root):
+                importer.import_day(None, quotes, day=7)
+                self.assertFalse(list(folder.glob('*.csv')))
+                self.assertEqual(json.loads((folder / 'data_7.json').read_text()), self.data)
+                importer.import_day(None, quotes, day=7, export_csv=True)
+                self.assertEqual(len(list(folder.glob('*.csv'))), 5)
+                self.assertEqual(generate_giornata_json(folder, 7), self.data)
 
     def test_updated_listone_wins_over_old_free_agent_price(self):
         with tempfile.TemporaryDirectory() as directory:
