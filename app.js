@@ -123,7 +123,7 @@ function renderMarket() {
     $('market-list').innerHTML = [...state.data.cambi].sort((a,b) => b.cambi - a.cambi || b.crediti - a.crediti || a.team.localeCompare(b.team, 'it')).map(t => `<tr><th scope="row">${esc(t.team)}</th><td>${num(t.cambi)}</td><td>${num(t.crediti)} <small>cr</small></td><td>${esc(t.extra || '—')}</td></tr>`).join('');
 }
 function render() {
-    if (!state.data) return;
+    if (state.view === 'rules' || !state.data) return;
     const key = state.view === 'players' ? JSON.stringify([$('query').value.trim(), state.role, state.ownership]) : '';
     const previous = state.rendered.get(state.view);
     if (previous?.data === state.data && previous.key === key) return;
@@ -133,11 +133,22 @@ function render() {
 document.querySelector('.tabs').addEventListener('click', event => {
     const button = event.target.closest('[data-view]');
     if (!button) return;
-    state.view = button.dataset.view;
+    showView(button.dataset.view);
+});
+function showView(view) {
+    state.view = view;
+    const button = document.querySelector(`[data-view="${view}"]`);
+    const rules = view === 'rules';
+    $('rules').hidden = !rules;
+    document.querySelector('.day-bar').hidden = rules;
+    $('content').style.display = rules ? 'none' : '';
+    $('feedback').style.display = rules ? 'none' : '';
+    $('retry').style.display = rules ? 'none' : '';
     document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-current', b === button ? 'page' : 'false'));
     ['players','teams','market'].forEach(id => { $(id).hidden = id !== state.view; });
     render();
-});
+}
+if (location.hash === '#rules' || location.hash.startsWith('#regola-')) showView('rules');
 let timer;
 $('filters').addEventListener('submit', e => e.preventDefault());
 $('filters').addEventListener('input', () => {

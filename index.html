@@ -6,8 +6,8 @@
     <meta name="description" content="Fantanucleo: calciatori, rose e mercato della lega 2026/27.">
     <meta name="color-scheme" content="dark">
     <title>Fantanucleo · Market 26/27</title>
-    <link rel="stylesheet" href="style.css?v=35">
-    <script src="app.js?v=35" defer></script>
+    <link rel="stylesheet" href="style.css?v=36">
+    <script src="app.js?v=36" defer></script>
 </head>
 <body>
     <a class="skip" href="#main">Vai ai contenuti</a>
@@ -31,6 +31,7 @@
             <button data-view="players" aria-current="page">Giocatori</button>
             <button data-view="teams">Rose e classifica</button>
             <button data-view="market">Crediti e cambi</button>
+            <button data-view="rules">Regolamento</button>
         </nav>
         <div id="feedback" role="status" aria-live="polite"></div>
         <button id="retry" hidden>Riprova caricamento</button>
@@ -82,6 +83,57 @@
                 </div>
             </section>
         </div>
+<section id="rules" hidden aria-labelledby="rules-title" class="rules">
+<div class="section-heading"><h2 id="rules-title">Regolamento 2026/27</h2><span class="muted">Le regole della lega, per argomento</span></div>
+<div class="rules-highlights" aria-label="In breve">
+<div><strong>18</strong><span>fantasquadre</span></div><div><strong>250</strong><span>fantamilioni iniziali</span></div><div><strong>23</strong><span>calciatori in rosa</span></div><div><strong>−15 min</strong><span>consegna formazione</span></div>
+</div>
+<nav class="rules-index" aria-label="Indice del regolamento">
+<a href="#regola-mercato">Mercato</a><a href="#regola-formazioni">Rosa e formazioni</a><a href="#regola-cambi">Cambi e budget</a><a href="#regola-punteggi">Bonus e malus</a><a href="#regola-difesa">Modificatore difesa</a><a href="#regola-rinvii">Anticipi e rinvii</a><a href="#regola-competizioni">Campionato e Coppa</a><a href="#regola-premi">Quote e premi</a>
+</nav>
+<div class="rules-body">
+<article id="regola-mercato"><h3>Mercato e acquisti consentiti</h3>
+<ul><li><strong>Dalla seconda giornata:</strong> puoi acquistare solo calciatori che nella giornata precedente non erano presenti in nessuna rosa avversaria.</li>
+<li><strong>Prima di fare mercato:</strong> attendi l’Excel settimanale dell’organizzatore e consulta le rose riportate nel file.</li>
+<li><strong>Acquisto non consentito:</strong> la compravendita viene annullata. Si annullano anche altre operazioni che dipendono dai crediti ricavati dall’operazione irregolare.</li>
+<li><strong>Partite già iniziate:</strong> il calciatore acquistato per errore viene tolto dalla formazione e sostituito con quello venduto nella stessa operazione.</li></ul>
+</article>
+<article id="regola-formazioni"><h3>Rosa e formazioni</h3>
+<div class="table-wrap"><table><caption>Budget iniziale: 250 fantamilioni</caption><thead><tr><th scope="col">Ruolo</th><th scope="col">Calciatori</th></tr></thead><tbody><tr><th scope="row">Portieri</th><td>3</td></tr><tr><th scope="row">Difensori</th><td>7</td></tr><tr><th scope="row">Centrocampisti</th><td>8</td></tr><tr><th scope="row">Attaccanti</th><td>5</td></tr></tbody></table></div>
+<ul><li><strong>Scadenza:</strong> 15 minuti prima della prima partita della giornata.</li><li><strong>Salvataggio:</strong> salva la formazione per tutte le competizioni.</li><li><strong>Mancato inserimento:</strong> resta valida l’ultima formazione salvata.</li><li><strong>Moduli ammessi:</strong> 3-5-2 · 3-4-3 · 4-5-1 · 4-4-2 · 4-3-3 · 5-3-2 · 5-4-1.</li><li><strong>Sostituzioni:</strong> massimo 5, in modalità Dynamic. Conta l’ordine della panchina: entra il primo calciatore con voto che permette un modulo valido, con priorità al cambio modulo rispetto al cambio per ruolo.</li></ul>
+<p class="rules-example"><strong>Esempio Dynamic:</strong> parti con un 3-4-3 e manca un attaccante. Se il primo panchinaro utile è un difensore, passi al 4-4-2, anche se più avanti in panchina c’è un attaccante con voto.</p>
+</article>
+<article id="regola-cambi"><h3>Cambi e budget extra</h3>
+<ul><li><strong>Cambi ordinari:</strong> massimo 10 compravendite durante il campionato.</li><li><strong>Periodo iniziale:</strong> cambi illimitati fino a 15 minuti prima della quarta giornata.</li><li><strong>Fuori dal conteggio:</strong> cambi dei calciatori che lasciano la Serie A durante la stagione, per trasferimento in categorie inferiori o all’estero, oppure per ritiro.</li></ul>
+<p class="rules-note"><strong>Da verificare:</strong> per il periodo iniziale il documento cita la Serie A 2024/2025, pur essendo il regolamento 2026/27.</p>
+<div class="table-wrap"><table><caption>Finestre di mercato extra · Serie A 2026/27</caption><thead><tr><th scope="col">Tra le giornate</th><th scope="col">Cambi extra</th><th scope="col">Budget extra</th></tr></thead><tbody><tr><th scope="row">10ª → 11ª</th><td>5</td><td>+5 milioni</td></tr><tr><th scope="row">16ª → 17ª</th><td>5</td><td>+5 milioni</td></tr><tr><th scope="row">23ª → 24ª</th><td>10</td><td>+20 milioni</td></tr><tr><th scope="row">30ª → 31ª</th><td>5</td><td>+5 milioni</td></tr></tbody></table></div>
+<ul><li><strong>Cambi extra non usati:</strong> scadono alla fine della rispettiva finestra.</li><li><strong>Budget non usato:</strong> rimane disponibile.</li></ul>
+</article>
+<article id="regola-punteggi"><h3>Voti, bonus e malus</h3>
+<ul><li><strong>Fonte voti “Italia”:</strong> media dei voti delle principali testate sportive.</li><li><strong>Voti live:</strong> indicativi, dalla redazione di fantacalcio.com. I voti effettivi escono il giorno seguente.</li><li><strong>Punteggio:</strong> voti dei calciatori schierati, più bonus e meno malus. Fanno fede i voti e i bonus/malus assegnati da fantacalcio.com.</li></ul>
+<div class="table-wrap"><table><caption>Bonus e malus</caption><thead><tr><th scope="col">Evento</th><th scope="col">Punti</th></tr></thead><tbody>
+<tr><th scope="row">Gol attaccante</th><td>+3</td></tr><tr><th scope="row">Gol centrocampista</th><td>+4</td></tr><tr><th scope="row">Gol difensore</th><td>+4,5</td></tr><tr><th scope="row">Gol portiere</th><td>+6</td></tr><tr><th scope="row">Gol su rigore · qualsiasi ruolo</th><td>+3</td></tr><tr><th scope="row">Assist · qualsiasi ruolo</th><td>+1</td></tr><tr><th scope="row">Porta inviolata · portiere</th><td>+1</td></tr><tr><th scope="row">Gol subito</th><td>−1</td></tr><tr><th scope="row">Rigore sbagliato</th><td>−3</td></tr><tr><th scope="row">Espulsione</th><td>−1</td></tr><tr><th scope="row">Ammonizione</th><td>−0,5</td></tr><tr><th scope="row">Autogol</th><td>−2</td></tr>
+</tbody></table></div></article>
+<article id="regola-difesa"><h3>Modificatore di difesa</h3>
+<ul><li><strong>Requisito:</strong> schierare almeno 4 difensori.</li><li><strong>Calcolo:</strong> media dei voti del portiere e dei 3 migliori difensori.</li></ul>
+<div class="table-wrap"><table><caption>Bonus in base alla media</caption><thead><tr><th scope="col">Media voto</th><th scope="col">Bonus</th></tr></thead><tbody><tr><th scope="row">Meno di 6</th><td>0</td></tr><tr><th scope="row">6 – 6,24</th><td>+1</td></tr><tr><th scope="row">6,25 – 6,49</th><td>+2</td></tr><tr><th scope="row">6,5 – 6,74</th><td>+3</td></tr><tr><th scope="row">6,75 – 6,99</th><td>+4</td></tr><tr><th scope="row">Da 7</th><td>+6</td></tr></tbody></table></div>
+</article>
+<article id="regola-rinvii"><h3>Anticipi e rinvii</h3>
+<ul><li><strong>6 d’ufficio:</strong> per i calciatori di squadre con partite anticipate o rinviate oltre le 48 ore, oppure negli altri casi consentiti dal sito.</li><li><strong>Esclusi:</strong> i calciatori squalificati.</li><li><strong>Comunicazione:</strong> l’applicazione del 6 d’ufficio viene annunciata prima dell’inizio della giornata, indicando le squadre interessate.</li></ul>
+</article>
+<article id="regola-competizioni"><h3>Campionato e Coppa</h3>
+<h4>Campionato</h4><p>La classifica finale è la somma dei punteggi settimanali dei calciatori schierati.</p>
+<h4>Coppa · prima fase</h4><ul><li>Scontri diretti con girone di andata e ritorno fino alla <strong>34ª giornata</strong>.</li><li><strong>Fattore campo:</strong> +3 punti ai padroni di casa.</li><li><strong>Prime due classificate:</strong> direttamente in semifinale.</li></ul>
+<h4>Coppa · fase finale</h4><div class="table-wrap"><table><caption>Tabellone a eliminazione diretta</caption><thead><tr><th scope="col">Turno</th><th scope="col">Incontri</th></tr></thead><tbody><tr><th scope="row">Primo turno playoff · dopo la 34ª</th><td>3ª–10ª · 4ª–9ª · 5ª–8ª · 6ª–7ª</td></tr><tr><th scope="row">36ª giornata</th><td>Le 4 vincitrici si affrontano; ne passano 2</td></tr><tr><th scope="row">Semifinali · 37ª giornata</th><td>Le 2 qualificate incontrano le prime 2 della prima fase</td></tr><tr><th scope="row">Finale · 38ª giornata</th><td>Le 2 vincitrici delle semifinali</td></tr></tbody></table></div>
+<ul><li><strong>Playoff:</strong> partite secche in campo neutro; anche la finale si gioca in campo neutro.</li><li><strong>Parità in qualsiasi gara a eliminazione diretta, finale compresa:</strong> vince chi si è classificato meglio nella prima fase.</li></ul>
+<h4>Gol negli scontri diretti</h4><ul><li><strong>1 gol:</strong> da 66 punti; <strong>2 gol:</strong> da 72; poi un gol in più ogni 6 punti.</li><li><strong>Entrambe sotto 66:</strong> vince 1–0 chi totalizza almeno 4 punti più dell’avversaria.</li><li><strong>Stessa fascia di punteggio:</strong> un gol in più a chi totalizza almeno 4 punti più dell’altra.</li></ul>
+<h4>Parità in classifica alla 34ª giornata</h4><ol><li>Differenza reti.</li><li>Gol fatti.</li><li>Gol subiti.</li><li>Classifica avulsa.</li><li>Totale dei punteggi ottenuti in Coppa.</li></ol>
+<p class="rules-example">Calcoli e classifiche sono gestiti automaticamente dal sito di gioco.</p>
+</article>
+<article id="regola-premi"><h3>Quote, premi e comunicazioni</h3>
+<ul><li><strong>Quota iniziale:</strong> debito di 75 €, salvo crediti già maturati.</li><li><strong>Miglior punteggio di giornata:</strong> 5 € di credito.</li><li><strong>Premi finali:</strong> da concordare tra i partecipanti; possono ridurre il debito o trasformarlo in credito.</li><li><strong>Conteggi definitivi:</strong> a fine campionato.</li><li><strong>Excel settimanale:</strong> riepiloga dati, rose e cambi ancora disponibili. In caso di ritardo nell’invio, attendi l’aggiornamento dell’organizzatore.</li></ul>
+</article>
+</div></section>
         <noscript>Attiva JavaScript per consultare i dati delle giornate.</noscript>
         <footer>Fantanucleo · Stagione 2026/27 <a href="#main">Torna in cima ↑</a></footer>
     </main>

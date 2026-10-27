@@ -651,3 +651,36 @@ summary:focus-visible {
         scroll-behavior:auto!important
     }
 }
+
+/* Regulation: readable full text with an index on wide screens. */
+.tabs { flex-wrap:wrap }
+.rules-index { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:28px }
+.rules-index a { padding:8px 12px; border:1px solid var(--line); border-radius:9px; text-decoration:none; font-size:.9rem }
+.rules-index a:hover { background:var(--soft); border-color:var(--accent) }
+.rules-body { max-width:80ch }
+.rules-body article { scroll-margin-top:24px; margin-bottom:32px; padding:24px; border:1px solid var(--line); border-radius:12px; background:var(--panel) }
+.rules-body h3 { font-size:1.15rem; color:var(--accent); margin-bottom:16px }
+.rules-body p { line-height:1.8; margin-bottom:16px; overflow-wrap:anywhere }
+.rules-body p:last-child { margin-bottom:0 }
+.rules-scale { line-height:1.9; padding-left:24px; margin:16px 0 }
+@media(max-width:650px) {
+    .tabs button { flex:1 1 40% }
+    .rules .section-heading { flex-direction:column; gap:8px }
+    .rules .section-heading>.muted { max-width:none; text-align:left }
+    .rules-body article { padding:18px }
+}
+
+.rules-highlights { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:0 0 24px }
+.rules-highlights div { padding:18px; background:var(--panel); border:1px solid var(--line); border-radius:12px }
+.rules-highlights strong { display:block; font-size:1.65rem; color:var(--accent) }
+.rules-highlights span { color:var(--muted); font-size:.9rem }
+.rules-body ul,.rules-body ol { padding-left:22px; margin:12px 0 20px }
+.rules-body li { padding-left:4px; margin-bottom:10px; line-height:1.7 }
+.rules-body li:last-child { margin-bottom:0 }
+.rules-body h4 { font-size:1rem; margin:24px 0 12px }
+.rules-body caption { text-align:left; color:var(--muted); padding:0 0 12px; font-size:.9rem }
+.rules-body .table-wrap { margin:20px 0 }
+.rules-body table { min-width:0; width:100% }
+.rules-example,.rules-note { padding:14px 16px; border-left:3px solid var(--accent); background:var(--raised); border-radius:0 8px 8px 0; font-size:.9rem }
+.rules-note { border-color:#fbbf24 }
+@media(max-width:650px) { .rules-highlights { grid-template-columns:repeat(2,1fr) } .rules-highlights div { padding:14px } }
