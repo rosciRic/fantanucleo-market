@@ -132,13 +132,19 @@ main {
     padding:32px 28px
 }
 .tabs {
-    display:flex;
-    gap:6px;
+    position:sticky;
+    top:0;
+    z-index:5;
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:4px;
     border-bottom:1px solid var(--line);
-    margin-bottom:24px;
-    padding-bottom:10px
+    margin-bottom:18px;
+    padding:6px 0;
+    background:var(--bg)
 }
 .tabs button {
+    min-height:44px;
     background:transparent;
     border-color:transparent;
     color:var(--muted)
@@ -585,13 +591,10 @@ summary:focus-visible {
     main {
         padding:24px 16px
     }
-    .tabs {
-        gap:2px
-    }
     .tabs button {
         font-size:.8rem;
-        padding:10px 8px;
-        flex:1
+        line-height:1.2;
+        padding:6px 2px
     }
     .toolbar {
         padding:14px
@@ -608,7 +611,7 @@ summary:focus-visible {
         display:none
     }
     .player summary {
-        grid-template-columns:1fr auto 14px;
+        grid-template-columns:minmax(0,1fr) auto 14px;
         gap:8px;
         padding:14px
     }
@@ -653,18 +656,21 @@ summary:focus-visible {
 }
 
 /* Regulation: readable full text with an index on wide screens. */
-.tabs { flex-wrap:wrap }
-.rules-index { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:28px }
-.rules-index a { padding:8px 12px; border:1px solid var(--line); border-radius:9px; text-decoration:none; font-size:.9rem }
+.rules-layout { display:grid; gap:24px }
+.rules-index { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; align-self:start }
+.rules-index p { grid-column:1/-1; padding:0 10px; color:var(--muted); font-weight:650 }
+.rules-index a { display:flex; align-items:center; min-height:44px; padding:6px 10px; border:1px solid transparent; border-radius:8px; text-decoration:none; font-size:.9rem }
+@media(min-width:850px) {
+    .rules-layout { grid-template-columns:205px minmax(0,1fr) }
+    .rules-index { position:sticky; top:74px; grid-template-columns:1fr }
+}
 .rules-index a:hover { background:var(--soft); border-color:var(--accent) }
 .rules-body { max-width:80ch }
-.rules-body article { scroll-margin-top:24px; margin-bottom:32px; padding:24px; border:1px solid var(--line); border-radius:12px; background:var(--panel) }
+.rules-body article { scroll-margin-top:80px; margin-bottom:32px; padding:24px; border:1px solid var(--line); border-radius:12px; background:var(--panel) }
 .rules-body h3 { font-size:1.15rem; color:var(--accent); margin-bottom:16px }
 .rules-body p { line-height:1.8; margin-bottom:16px; overflow-wrap:anywhere }
 .rules-body p:last-child { margin-bottom:0 }
-.rules-scale { line-height:1.9; padding-left:24px; margin:16px 0 }
 @media(max-width:650px) {
-    .tabs button { flex:1 1 40% }
     .rules .section-heading { flex-direction:column; gap:8px }
     .rules .section-heading>.muted { max-width:none; text-align:left }
     .rules-body article { padding:18px }
@@ -681,6 +687,20 @@ summary:focus-visible {
 .rules-body caption { text-align:left; color:var(--muted); padding:0 0 12px; font-size:.9rem }
 .rules-body .table-wrap { margin:20px 0 }
 .rules-body table { min-width:0; width:100% }
-.rules-example,.rules-note { padding:14px 16px; border-left:3px solid var(--accent); background:var(--raised); border-radius:0 8px 8px 0; font-size:.9rem }
-.rules-note { border-color:#fbbf24 }
+.rules-example { padding:14px 16px; border-left:3px solid var(--accent); background:var(--raised); border-radius:0 8px 8px 0; font-size:.9rem }
 @media(max-width:650px) { .rules-highlights { grid-template-columns:repeat(2,1fr) } .rules-highlights div { padding:14px } }
+
+@media(max-width:650px) {
+    .day-bar { gap:8px; margin-bottom:12px }
+    .day-bar > p { flex:1; min-width:0; font-size:.8rem }
+    .day-picker > summary { padding:8px 10px; gap:6px; font-size:.85rem }
+    .day-picker > summary .muted { display:none }
+    .chips button { min-height:44px }
+    .filter-grid { gap:8px 16px }
+    .rules-layout { gap:16px }
+    .rules-body article { margin-bottom:16px }
+    .table-wrap th,.table-wrap td { padding:9px 7px; white-space:normal; overflow-wrap:anywhere }
+    #market table { table-layout:fixed }
+    #market th:first-child { width:35% }
+    .rules-highlights { gap:8px }
+}

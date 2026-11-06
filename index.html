@@ -6,7 +6,7 @@
     <meta name="description" content="Fantanucleo: calciatori, rose e mercato della lega 2026/27.">
     <meta name="color-scheme" content="dark">
     <title>Fantanucleo · Market 26/27</title>
-    <link rel="stylesheet" href="style.css?v=36">
+    <link rel="stylesheet" href="style.css?v=37">
     <script src="app.js?v=36" defer></script>
 </head>
 <body>
@@ -18,6 +18,12 @@
         </div>
     </header>
     <main id="main" tabindex="-1">
+        <nav class="tabs" aria-label="Sezioni">
+            <button data-view="players" aria-current="page">Giocatori</button>
+            <button data-view="teams">Rose e classifica</button>
+            <button data-view="market">Crediti e cambi</button>
+            <button data-view="rules">Regolamento</button>
+        </nav>
         <div class="day-bar">
             <p id="edition" class="muted">Caricamento…</p>
             <details id="day-picker" class="day-picker">
@@ -27,22 +33,16 @@
                 </div>
             </details>
         </div>
-        <nav class="tabs" aria-label="Sezioni">
-            <button data-view="players" aria-current="page">Giocatori</button>
-            <button data-view="teams">Rose e classifica</button>
-            <button data-view="market">Crediti e cambi</button>
-            <button data-view="rules">Regolamento</button>
-        </nav>
         <div id="feedback" role="status" aria-live="polite"></div>
         <button id="retry" hidden>Riprova caricamento</button>
         <div id="content" aria-busy="true" hidden>
             <section id="players" aria-label="Giocatori">
                 <form id="filters" class="toolbar" role="search">
                     <div class="search-row">
-                        <label class="search-label">Cerca calciatore o squadra
-                            <input id="query" type="search" placeholder="Nome, squadra o fantasquadra…" autocomplete="off">
+                        <label class="search-label">Cerca giocatori
+                            <input id="query" type="search" placeholder="Nome, squadra o fantasquadra" autocomplete="off">
                         </label>
-                        <button type="reset" class="subtle">Azzera filtri</button>
+                        <button type="reset" class="subtle">Azzera</button>
                     </div>
                     <div class="filter-grid">
                         <fieldset class="role-filter">
@@ -88,7 +88,9 @@
 <div class="rules-highlights" aria-label="In breve">
 <div><strong>18</strong><span>fantasquadre</span></div><div><strong>250</strong><span>fantamilioni iniziali</span></div><div><strong>23</strong><span>calciatori in rosa</span></div><div><strong>−15 min</strong><span>consegna formazione</span></div>
 </div>
+<div class="rules-layout">
 <nav class="rules-index" aria-label="Indice del regolamento">
+<p>Vai alla sezione</p>
 <a href="#regola-mercato">Mercato</a><a href="#regola-formazioni">Rosa e formazioni</a><a href="#regola-cambi">Cambi e budget</a><a href="#regola-punteggi">Bonus e malus</a><a href="#regola-difesa">Modificatore difesa</a><a href="#regola-rinvii">Anticipi e rinvii</a><a href="#regola-competizioni">Campionato e Coppa</a><a href="#regola-premi">Quote e premi</a>
 </nav>
 <div class="rules-body">
@@ -132,7 +134,7 @@
 <article id="regola-premi"><h3>Quote, premi e comunicazioni</h3>
 <ul><li><strong>Quota iniziale:</strong> debito di 75 €, salvo crediti già maturati.</li><li><strong>Miglior punteggio di giornata:</strong> 5 € di credito.</li><li><strong>Premi finali:</strong> da concordare tra i partecipanti; possono ridurre il debito o trasformarlo in credito.</li><li><strong>Conteggi definitivi:</strong> a fine campionato.</li><li><strong>Excel settimanale:</strong> riepiloga dati, rose e cambi ancora disponibili. In caso di ritardo nell’invio, attendi l’aggiornamento dell’organizzatore.</li></ul>
 </article>
-</div></section>
+</div></div></section>
         <noscript>Attiva JavaScript per consultare i dati delle giornate.</noscript>
         <footer>Fantanucleo · Stagione 2026/27 <a href="#main">Torna in cima ↑</a></footer>
     </main>
