@@ -9,6 +9,9 @@ from export_json import generate_giornata_json, build_day, read_tables, tables_f
 from site_data import ROOT, check, validate, manifest
 
 
+LEGACY_DAY = Path(__file__).resolve().parent / 'fixtures/giornata_7'
+
+
 class PipelineTests(unittest.TestCase):
     def setUp(self):
         self.data = json.loads((ROOT / 'giornata_7/data_7.json').read_text())
@@ -39,15 +42,10 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(manifest(), manifest())
 
     def test_json_results_roundtrip_preserves_legacy_archive(self):
-        for source in ROOT.glob('giornata_*/quotazioni_*.csv'):
-            day = int(source.parent.name.split('_')[1])
-            with self.subTest(day=day):
-                folder = source.parent
-                expected = generate_giornata_json(folder, day)
-                tables = read_tables(folder, day)
-                recovered = tables_from_data(expected)
-                recovered['quotazioni'] = tables['quotazioni']
-                self.assertEqual(build_day(recovered, day), expected)
+        expected = generate_giornata_json(LEGACY_DAY, 7)
+        recovered = tables_from_data(expected)
+        recovered['quotazioni'] = read_tables(LEGACY_DAY, 7)['quotazioni']
+        self.assertEqual(build_day(recovered, 7), expected)
 
     def test_changing_one_day_keeps_other_cache_versions(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -66,7 +64,7 @@ class PipelineTests(unittest.TestCase):
             self.assertNotEqual(before['version'], after['version'])
 
     def test_quotes_update_works_without_csv_and_exports_only_on_request(self):
-        self.data = generate_giornata_json(ROOT / 'giornata_7', 7)
+        self.data = generate_giornata_json(LEGACY_DAY, 7)
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             folder = root / 'giornata_7'
@@ -77,7 +75,7 @@ class PipelineTests(unittest.TestCase):
             ws = wb.active
             ws.append(['header'])
             ws.append(['header'])
-            for index, row in enumerate(read_tables(ROOT / 'giornata_7', 7)['quotazioni'], 1):
+            for index, row in enumerate(read_tables(LEGACY_DAY, 7)['quotazioni'], 1):
                 ws.append([index, row['Ruolo'], '', row['Nome'], row['Squadra'], int(row['QtA']), int(row['QtI']), int(row['Diff'])])
             wb.save(quotes)
             wb.close()

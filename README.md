@@ -40,6 +40,28 @@ In **Settings → Pages → Build and deployment**, seleziona **GitHub Actions**
 
 ## Aggiornare il sito a ogni giornata
 
+### Comandi rapidi
+
+Metti i due Excel nei **Download**: un solo file risultati `.xlsx` con “Risultati” nel nome e un solo listone `Quotazioni_Fantacalcio*.xlsx`. La giornata viene riconosciuta dal nome del file risultati o dal suo contenuto.
+
+Per importare e pubblicare:
+
+```bash
+cd ~/Projects/fantanucleo_26_27
+./aggiorna_fanta.sh --publish
+```
+
+Per controllare prima i file senza modificare i dati:
+
+```bash
+cd ~/Projects/fantanucleo_26_27
+./aggiorna_fanta.sh --dry-run
+```
+
+Se ci sono più file candidati nei Download, lo script si ferma: usa i percorsi espliciti descritti sotto. Gli originali restano nei Download dopo l'importazione.
+
+### Comandi con percorsi espliciti
+
 Scarica da Fantacalcio gli Excel dei risultati e delle quotazioni. Nei comandi seguenti sostituisci i nomi di esempio con quelli effettivi.
 
 ### 1. Aggiorna il checkout e controlla i file
@@ -67,18 +89,9 @@ Lo script:
 3. Salva la giornata e aggiorna il manifest solo dopo la validazione. Copia gli Excel nella cartella della giornata; gli originali nei Download restano disponibili.
 4. Con `--publish`, crea un commit limitato ai dati della giornata e a `manifest.json`, quindi esegue il push su `main`. Gli Excel restano locali, ignorati da Git.
 
-I CSV sono facoltativi: aggiungi `--csv` al comando di importazione per esportarli. I CSV storici restano disponibili, ma non vengono aggiornati senza questa opzione. Gli aggiornamenti delle sole quotazioni leggono classifica, rose e statistiche dal JSON esistente.
+I CSV sono facoltativi: aggiungi `--csv` al comando di importazione per esportarli. Le sorgenti storiche delle giornate 1–10 sono nell’archivio locale `archivio_giornate/`. Per reimportare una di queste giornate, passa esplicitamente i percorsi degli Excel archiviati. Gli aggiornamenti delle sole quotazioni leggono classifica, rose e statistiche dal JSON esistente.
 
 Il push avvia GitHub Actions: controlla che **Publish GitHub Pages** termini con successo. Il messaggio “Push completato” non significa che il deploy sia già terminato.
-
-**Comando rapido:** se nei Download c'è un solo file risultati e un solo listone `Quotazioni_Fantacalcio*.xlsx`, puoi usare:
-
-```bash
-./aggiorna_fanta.sh --dry-run
-./aggiorna_fanta.sh --publish
-```
-
-Se ci sono più file candidati, lo script si ferma: seleziona i percorsi esplicitamente. Poiché i Download non vengono svuotati, i percorsi espliciti sono consigliati.
 
 ### Aggiornare soltanto le quotazioni
 

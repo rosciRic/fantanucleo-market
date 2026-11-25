@@ -122,12 +122,15 @@ function renderTeams() {
 function renderMarket() {
     $('market-list').innerHTML = [...state.data.cambi].sort((a,b) => b.cambi - a.cambi || b.crediti - a.crediti || a.team.localeCompare(b.team, 'it')).map(t => `<tr><th scope="row">${esc(t.team)}</th><td>${num(t.cambi)}</td><td>${num(t.crediti)} <small>cr</small></td><td>${esc(t.extra || '—')}</td></tr>`).join('');
 }
+const dataViews = {players: renderPlayers, teams: renderTeams, market: renderMarket};
+
 function render() {
-    if (state.view === 'rules' || !state.data) return;
+    const renderView = dataViews[state.view];
+    if (!renderView || !state.data) return;
     const key = state.view === 'players' ? JSON.stringify([$('query').value.trim(), state.role, state.ownership]) : '';
     const previous = state.rendered.get(state.view);
     if (previous?.data === state.data && previous.key === key) return;
-    ({players: renderPlayers, teams: renderTeams, market: renderMarket})[state.view]();
+    renderView();
     state.rendered.set(state.view, {data: state.data, key});
 }
 document.querySelector('.tabs').addEventListener('click', event => {
@@ -137,15 +140,15 @@ document.querySelector('.tabs').addEventListener('click', event => {
 });
 function showView(view) {
     state.view = view;
-    const button = document.querySelector(`[data-view="${view}"]`);
-    const rules = view === 'rules';
-    $('rules').hidden = !rules;
-    document.querySelector('.day-bar').hidden = rules;
-    $('content').style.display = rules ? 'none' : '';
-    $('feedback').style.display = rules ? 'none' : '';
-    $('retry').style.display = rules ? 'none' : '';
-    document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-current', b === button ? 'page' : 'false'));
-    ['players','teams','market'].forEach(id => { $(id).hidden = id !== state.view; });
+    const isRules = view === 'rules';
+    $('rules').hidden = !isRules;
+    $('dashboard').hidden = isRules;
+    document.querySelectorAll('.tabs [data-view]').forEach(button => {
+        button.setAttribute('aria-current', button.dataset.view === view ? 'page' : 'false');
+    });
+    for (const id of Object.keys(dataViews)) {
+        $(id).hidden = id !== view;
+    }
     render();
 }
 if (location.hash === '#rules' || location.hash.startsWith('#regola-')) showView('rules');

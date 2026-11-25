@@ -19,3 +19,6 @@ __pycache__/
 _site/
 .import_*/
 *.json.tmp
+
+# Archivio locale delle sorgenti delle giornate
+/archivio_giornate/
